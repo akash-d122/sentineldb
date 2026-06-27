@@ -9,7 +9,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, Float, String, Text, Timestamp
+from sqlalchemy import TIMESTAMP, Boolean, Float, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql import func
@@ -31,12 +31,12 @@ class IncidentORM(Base):
     metric_value: Mapped[float | None] = mapped_column(Float, nullable=True)
     threshold_value: Mapped[float | None] = mapped_column(Float, nullable=True)
     triggered_at: Mapped[datetime] = mapped_column(
-        Timestamp(timezone=True), nullable=False
+        TIMESTAMP(timezone=True), nullable=False
     )
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="queued")
     raw_payload: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(
-        Timestamp(timezone=True), server_default=func.now(), nullable=False
+        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
 
 
@@ -59,5 +59,5 @@ class IncidentReportORM(Base):
     missing_evidence: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     llm_used: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     generated_at: Mapped[datetime] = mapped_column(
-        Timestamp(timezone=True), server_default=func.now(), nullable=False
+        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
