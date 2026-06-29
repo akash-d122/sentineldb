@@ -10,21 +10,16 @@
       "Bash(git status*)",
       "Bash(git diff*)"
     ],
-    "ask": [
-      "Bash(uv add*)",
-      "Bash(git add*)",
-      "Bash(git commit*)"
-    ],
     "deny": [
       "Read(.env)",
       "Read(**/.env)",
       "Bash(rm -rf*)",
-      "Bash(git push*)",
       "Bash(ssh*)",
       "Bash(mysql*)",
       "Bash(psql*)",
       "Bash(aws*)"
-    ]
+    ],
+    "ask": []
   },
   "autoCompactEnabled": true
 }

@@ -1,0 +1,9 @@
+db-demo-01:
+  engine: postgresql
+  host: db
+  port: 5432
+  database: sentineldb
+  username: sentinel_ro
+  credential_ref: POSTGRES_RO_PASSWORD
+  cloud: null
+  monitoring: null
