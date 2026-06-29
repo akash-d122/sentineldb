@@ -48,7 +48,9 @@ def _make_row(value: float) -> MagicMock:
 
 @pytest.mark.asyncio
 async def test_connection_failure_returns_all_unavailable() -> None:
-    with patch("sentineldb.collectors.postgres.asyncpg.connect", side_effect=OSError("refused")):
+    with patch(
+        "sentineldb.collectors.postgres.asyncpg.create_pool", side_effect=OSError("refused")
+    ):
         collector = PostgresCollector(_DEMO_INSTANCE)
         bundle = await collector.collect()
 
@@ -63,9 +65,23 @@ async def test_query_timeout_produces_unavailable_partial_result() -> None:
 
     mock_conn = AsyncMock()
     mock_conn.fetchrow = AsyncMock(side_effect=asyncio.TimeoutError)
-    mock_conn.close = AsyncMock()
 
-    with patch("sentineldb.collectors.postgres.asyncpg.connect", return_value=mock_conn):
+    class MockAcquire:
+        async def __aenter__(self):
+            return mock_conn
+
+        async def __aexit__(self, exc_type, exc, tb):
+            pass
+
+    mock_pool = MagicMock()
+    mock_pool.acquire.return_value = MockAcquire()
+    mock_pool.close = AsyncMock()
+
+    with patch(
+        "sentineldb.collectors.postgres.asyncpg.create_pool",
+        new_callable=AsyncMock,
+        return_value=mock_pool,
+    ):
         collector = PostgresCollector(_DEMO_INSTANCE)
         bundle = await collector.collect()
 
@@ -77,18 +93,30 @@ async def test_query_timeout_produces_unavailable_partial_result() -> None:
 async def test_pg_stat_statements_unavailable_returns_unavailable_item() -> None:
     """When pg_stat_statements is not installed, slow_query_count is UNAVAILABLE."""
 
-    async def mock_fetchrow(sql: str) -> MagicMock | None:
+    async def mock_fetchrow(sql: str) -> list[float] | None:
         if "pg_stat_statements" in sql:
             raise Exception("relation does not exist")
-        row = MagicMock()
-        row.__getitem__ = MagicMock(return_value=10.0)
-        return row
+        return [10.0]
 
     mock_conn = AsyncMock()
     mock_conn.fetchrow = mock_fetchrow
-    mock_conn.close = AsyncMock()
 
-    with patch("sentineldb.collectors.postgres.asyncpg.connect", return_value=mock_conn):
+    class MockAcquire:
+        async def __aenter__(self):
+            return mock_conn
+
+        async def __aexit__(self, exc_type, exc, tb):
+            pass
+
+    mock_pool = MagicMock()
+    mock_pool.acquire.return_value = MockAcquire()
+    mock_pool.close = AsyncMock()
+
+    with patch(
+        "sentineldb.collectors.postgres.asyncpg.create_pool",
+        new_callable=AsyncMock,
+        return_value=mock_pool,
+    ):
         collector = PostgresCollector(_DEMO_INSTANCE)
         bundle = await collector.collect()
 
@@ -112,8 +140,8 @@ def test_all_catalog_queries_pass_guardrail_checker() -> None:
 
 def test_evidence_items_have_required_fields() -> None:
     """EvidenceItem schema: source, label, display_text must be non-empty."""
-    from sentineldb.core.models import EvidenceItem
     from sentineldb.core.enums import EvidenceStatus
+    from sentineldb.core.models import EvidenceItem
 
     item = EvidenceItem(
         source="pg",
@@ -137,8 +165,22 @@ def test_evidence_items_have_required_fields() -> None:
 async def test_integration_collector_returns_evidence_from_docker_pg() -> None:
     from sentineldb.registry.loader import InstanceRegistry
 
-    reg = InstanceRegistry("instances.yaml")
-    instance = reg.resolve("db-demo-01")
+    # Mock registry host to localhost since this runs on the host outside docker
+    original_resolve = InstanceRegistry.resolve
+
+    def mocked_resolve(self, instance_id: str):
+        instance = original_resolve(self, instance_id)
+        if instance.host == "db":
+            return instance.model_copy(update={"host": "127.0.0.1", "port": 5433})
+        return instance
+
+    with patch(
+        "sentineldb.registry.loader.InstanceRegistry.resolve",
+        side_effect=mocked_resolve,
+        autospec=True,
+    ):
+        reg = InstanceRegistry("instances.yaml")
+        instance = reg.resolve("db-demo-01")
     collector = PostgresCollector(instance)
     bundle = await collector.collect()
 

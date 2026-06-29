@@ -31,5 +31,8 @@ logs/
 *.log
 
 # Claude local/private files
-.claude/settings.local.json
+.claude
+.antigravity
 CLAUDE.local.md
+.docs
+AGENTS.local.md
