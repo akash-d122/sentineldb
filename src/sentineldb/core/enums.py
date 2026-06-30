@@ -1,9 +1,9 @@
 """Domain enums for SentinelDB."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class AlertType(str, Enum):
+class AlertType(StrEnum):
     cpu_high = "cpu_high"
     connection_saturation = "connection_saturation"
     slow_query = "slow_query"
@@ -11,21 +11,21 @@ class AlertType(str, Enum):
     db_unreachable = "db_unreachable"
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     P1 = "P1"
     P2 = "P2"
     P3 = "P3"
     P4 = "P4"
 
 
-class EvidenceStatus(str, Enum):
+class EvidenceStatus(StrEnum):
     OK = "OK"
     WARN = "WARN"
     CRITICAL = "CRITICAL"
     UNAVAILABLE = "UNAVAILABLE"
 
 
-class IncidentStatus(str, Enum):
+class IncidentStatus(StrEnum):
     queued = "queued"
     collecting = "collecting"
     analyzing = "analyzing"
@@ -33,7 +33,7 @@ class IncidentStatus(str, Enum):
     failed = "failed"
 
 
-class RCAStrength(str, Enum):
+class RCAStrength(StrEnum):
     High = "High"
     Medium = "Medium"
     Low = "Low"

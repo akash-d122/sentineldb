@@ -25,16 +25,6 @@ _METRICS = {
 }
 
 
-def _unavailable(label: str) -> EvidenceItem:
-    return EvidenceItem(
-        source="cloudwatch",
-        label=label,
-        value=None,
-        status=EvidenceStatus.UNAVAILABLE,
-        display_text=f"{label}: UNAVAILABLE",
-    )
-
-
 class CloudWatchCollector:
     """Evidence collector for AWS CloudWatch metrics."""
 
@@ -60,10 +50,10 @@ class CloudWatchCollector:
                 if isinstance(result, EvidenceItem):
                     items.append(result)
                 else:
-                    items.append(_unavailable(label))
+                    items.append(EvidenceItem.unavailable("cloudwatch", label))
             return EvidenceBundle(instance_id=self._instance.instance_id, items=items)
         except Exception:
-            items = [_unavailable(label) for label in _METRICS]
+            items = [EvidenceItem.unavailable("cloudwatch", label) for label in _METRICS]
             return EvidenceBundle(instance_id=self._instance.instance_id, items=items)
 
     def _fetch_metric(self, metric_name: str, label: str) -> EvidenceItem:
@@ -86,7 +76,7 @@ class CloudWatchCollector:
             )
             datapoints = response.get("Datapoints", [])
             if not datapoints:
-                return _unavailable(label)
+                return EvidenceItem.unavailable("cloudwatch", label)
 
             # Take the most recent datapoint
             latest = sorted(datapoints, key=lambda x: x["Timestamp"], reverse=True)[0]
@@ -101,4 +91,4 @@ class CloudWatchCollector:
                 display_text=f"{label}: {value:.2f}",
             )
         except Exception:
-            return _unavailable(label)
+            return EvidenceItem.unavailable("cloudwatch", label)

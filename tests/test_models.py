@@ -199,3 +199,12 @@ def test_incident_report_datetime_no_precision_loss() -> None:
     )
     data = item.model_dump()
     assert data["timestamp"].microsecond == 123456
+
+
+def test_evidence_item_unavailable_classmethod() -> None:
+    item = EvidenceItem.unavailable("pg", "active_connections")
+    assert item.status == EvidenceStatus.UNAVAILABLE
+    assert item.source == "pg"
+    assert item.label == "active_connections"
+    assert item.value is None
+    assert item.display_text == "active_connections: UNAVAILABLE"
