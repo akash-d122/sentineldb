@@ -18,6 +18,7 @@ client = TestClient(app)
 @pytest.fixture
 def mock_session():
     session = AsyncMock()
+    session.add = MagicMock()
     app.dependency_overrides[get_session] = lambda: session
     yield session
     app.dependency_overrides.pop(get_session, None)
@@ -149,17 +150,30 @@ async def test_manual_trigger_invalid_instance() -> None:
     assert "INSTANCE_NOT_REGISTERED" in response.json()["detail"]
 
 
-@patch("sentineldb.api.routes_incidents.run_incident_analysis")
+@patch("sentineldb.services.incident.run_incident_analysis")
 @pytest.mark.asyncio
 async def test_manual_trigger_success(
     mock_celery_task: MagicMock, mock_session: AsyncMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    def mock_load():
-        return {"test-db": {"engine": "mysql"}}
+    from sentineldb.registry.loader import InstanceNotRegistered
+    from sentineldb.registry.models import InstanceConfig
+
+    def mock_resolve(instance_id: str) -> InstanceConfig:
+        if instance_id == "test-db":
+            return InstanceConfig(
+                instance_id="test-db",
+                engine="mysql",
+                host="localhost",
+                port=3306,
+                database="test",
+                username="test",
+                credential_ref="MYSQL_PASSWORD",
+            )
+        raise InstanceNotRegistered(instance_id)
 
     import sentineldb.api.routes_incidents
 
-    monkeypatch.setattr(sentineldb.api.routes_incidents, "_load_registry", mock_load)
+    monkeypatch.setattr(sentineldb.api.routes_incidents._registry, "resolve", mock_resolve)
 
     payload = {"instance_id": "test-db", "alert_type": "cpu_high"}
 

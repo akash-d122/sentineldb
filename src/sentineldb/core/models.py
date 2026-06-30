@@ -30,21 +30,6 @@ class AlertPayload(BaseModel):
     raw_payload: dict[str, Any] = Field(default_factory=dict)
 
 
-class InstanceConfig(BaseModel):
-    """Connection configuration for a monitored database instance."""
-
-    model_config = ConfigDict(frozen=True)
-
-    instance_id: str
-    engine: str  # "postgresql" | "mysql"
-    host: str
-    port: int
-    database: str
-    credential_ref: str  # key into env-var credential store
-    cloud: str | None = None
-    monitoring: str | None = None
-
-
 class EvidenceItem(BaseModel):
     """A single piece of collected diagnostic evidence."""
 
@@ -59,6 +44,16 @@ class EvidenceItem(BaseModel):
     status: EvidenceStatus
     raw_reference: str | None = None
     display_text: str
+
+    @classmethod
+    def unavailable(cls, source: str, label: str) -> EvidenceItem:
+        return cls(
+            source=source,
+            label=label,
+            value=None,
+            status=EvidenceStatus.UNAVAILABLE,
+            display_text=f"{label}: UNAVAILABLE",
+        )
 
     @model_validator(mode="after")
     def value_required_when_ok(self) -> EvidenceItem:

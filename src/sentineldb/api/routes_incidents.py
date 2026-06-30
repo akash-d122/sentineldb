@@ -4,7 +4,6 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-import yaml
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import desc, select
@@ -14,7 +13,6 @@ from sentineldb.core.enums import AlertType, IncidentStatus, Severity
 from sentineldb.core.models import AlertPayload
 from sentineldb.db.models import IncidentORM, IncidentReportORM
 from sentineldb.db.session import get_session
-from sentineldb.worker.tasks import run_incident_analysis
 
 router = APIRouter(prefix="/api/v1/incidents", tags=["incidents"])
 
@@ -134,14 +132,24 @@ async def get_incident_report(
     }
 
 
+from sentineldb.registry.loader import InstanceNotRegistered, InstanceRegistry
+from sentineldb.services.incident import create_and_analyze_incident
+
+_registry = InstanceRegistry()
+
+
 @router.post("/analyze", status_code=status.HTTP_202_ACCEPTED)
 async def trigger_manual_analysis(
     req: ManualTriggerRequest, session: AsyncSession = Depends(get_session)
 ) -> Any:
     """Manually trigger an incident analysis."""
-    registry = _load_registry()
-    if req.instance_id not in registry:
-        raise HTTPException(status_code=400, detail=f"INSTANCE_NOT_REGISTERED: {req.instance_id}")
+    try:
+        _registry.resolve(req.instance_id)
+    except InstanceNotRegistered:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"INSTANCE_NOT_REGISTERED: {req.instance_id}",
+        )
 
     # Build an AlertPayload structure
     payload = AlertPayload(
@@ -153,27 +161,4 @@ async def trigger_manual_analysis(
         raw_payload={"source": "manual_trigger"},
     )
 
-    incident = IncidentORM(
-        instance_id=payload.instance_id,
-        alert_type=payload.alert_type.value,
-        severity=payload.severity.value,
-        metric_value=payload.metric_value,
-        threshold_value=payload.threshold_value,
-        triggered_at=payload.triggered_at,
-        status="queued",
-        raw_payload=payload.raw_payload,
-    )
-    session.add(incident)
-    await session.commit()
-    await session.refresh(incident)
-
-    incident_id_str = str(incident.incident_id)
-    payload_dict = payload.model_dump(mode="json")
-
-    # Enqueue analysis
-    run_incident_analysis.delay(incident_id_str, payload_dict)
-
-    return {
-        "status": "accepted",
-        "incident_id": incident_id_str,
-    }
+    return await create_and_analyze_incident(payload, session)

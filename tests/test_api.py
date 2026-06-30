@@ -52,7 +52,7 @@ def test_post_alert_wrong_hmac(monkeypatch: pytest.MonkeyPatch) -> None:
     assert response.status_code == 401
 
 
-@patch("sentineldb.api.routes_alerts.run_incident_analysis")
+@patch("sentineldb.services.incident.run_incident_analysis")
 def test_post_alert_valid_payload_mocked_celery(
     mock_celery_task: MagicMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:

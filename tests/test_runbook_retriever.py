@@ -39,7 +39,7 @@ def test_slow_query_returns_slow_query_runbook(retriever: RunbookRetriever) -> N
 
 def test_no_matching_keywords_returns_none(retriever: RunbookRetriever) -> None:
     # Tokens with no overlap with any runbook content
-    match = retriever.find_match(AlertType.cpu_high, ["zzznonexistent_metric_xyz"])
+    retriever.find_match(AlertType.cpu_high, ["zzznonexistent_metric_xyz"])
     # May or may not match (cpu_high has some tokens); test low-info evidence labels
     # by using a completely different alert type with no overlap keywords
     match2 = retriever.find_match(AlertType.replication_lag, ["zzznonexistent_xyz_abc"])

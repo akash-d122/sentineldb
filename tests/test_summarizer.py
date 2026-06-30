@@ -59,10 +59,12 @@ def test_mocked_litellm_returns_string(
 def test_litellm_exception_returns_none(
     summarizer: LLMSummarizer, dummy_cause: CandidateCause
 ) -> None:
-    with patch("sentineldb.llm.summarizer.litellm.completion", side_effect=Exception("API down")):
-        with patch("sentineldb.llm.summarizer.settings") as mock_settings:
-            mock_settings.GOOGLE_API_KEY = "dummy"
-            result = summarizer.summarize(dummy_cause, "100 active connections")
+    with (
+        patch("sentineldb.llm.summarizer.litellm.completion", side_effect=Exception("API down")),
+        patch("sentineldb.llm.summarizer.settings") as mock_settings,
+    ):
+        mock_settings.GOOGLE_API_KEY = "dummy"
+        result = summarizer.summarize(dummy_cause, "100 active connections")
 
     assert result is None
 
