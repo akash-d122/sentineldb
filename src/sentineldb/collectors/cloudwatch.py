@@ -9,6 +9,7 @@ the Celery worker's event loop.
 from __future__ import annotations
 
 import asyncio
+import os
 from datetime import UTC, datetime, timedelta
 
 import boto3
@@ -67,7 +68,8 @@ class CloudWatchCollector:
 
     def _fetch_metric(self, metric_name: str, label: str) -> EvidenceItem:
         """Fetch a single metric statistic from CloudWatch."""
-        client = boto3.client("cloudwatch", region_name="us-east-1")
+        region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+        client = boto3.client("cloudwatch", region_name=region)
 
         now = datetime.now(UTC)
         start_time = now - timedelta(minutes=5)
