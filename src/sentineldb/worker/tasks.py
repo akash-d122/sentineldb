@@ -60,9 +60,11 @@ async def _analyze(incident_id: str, alert: AlertPayload) -> IncidentReport:
     instance = _registry.resolve(alert.instance_id)
 
     # 2. Collect evidence
-    # Currently only PostgreSQL is implemented
     if instance.engine == "postgresql":
         collector = PostgresCollector(instance)
+    elif instance.engine == "mysql":
+        from sentineldb.collectors.mysql import MySQLCollector
+        collector = MySQLCollector(instance)
     else:
         raise NotImplementedError(f"Collector for engine {instance.engine} not implemented.")
 
@@ -77,7 +79,7 @@ async def _analyze(incident_id: str, alert: AlertPayload) -> IncidentReport:
     runbook = _retriever.find_match(alert.alert_type, labels)
 
     # 5. Render Output
-    report = _renderer.render(alert, top_cause, bundle, runbook)
+    report = _renderer.render(incident_id, alert, top_cause, bundle, runbook)
 
     # 6. Optional LLM Polish
     # Generate a string summary of evidence for the LLM
