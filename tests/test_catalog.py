@@ -54,6 +54,8 @@ def test_required_catalog_keys_present() -> None:
         "waiting_connections",
         "replication_lag",
         "db_size",
+        "lock_contention",
+        "long_running_transactions",
     }
     missing_pg = required - set(POSTGRES_CATALOG.keys())
     assert not missing_pg, f"Postgres Catalog missing required keys: {missing_pg}"

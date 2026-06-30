@@ -37,6 +37,20 @@ POSTGRES_CATALOG: dict[str, str] = {
         "FROM pg_stat_database "
         "WHERE datname = current_database()"
     ),
+    # Lock contention blocked processes
+    "lock_contention": (
+        "SELECT pid, usename, pg_blocking_pids(pid) AS blocked_by, query "
+        "FROM pg_stat_activity "
+        "WHERE pg_blocking_pids(pid) IS NOT NULL"
+    ),
+    # Long running transactions (> 1 minute)
+    "long_running_transactions": (
+        "SELECT pid, usename, state, query, extract(epoch from (now() - xact_start)) AS duration_seconds "
+        "FROM pg_stat_activity "
+        "WHERE state IN ('active', 'idle in transaction') "
+        "AND xact_start IS NOT NULL "
+        "AND now() - xact_start > interval '1 minute'"
+    ),
 }
 
 MYSQL_CATALOG: dict[str, str] = {
@@ -61,5 +75,16 @@ MYSQL_CATALOG: dict[str, str] = {
         "SELECT SUM(count_star) AS slow_query_count "
         "FROM performance_schema.events_statements_summary_by_digest "
         "WHERE avg_timer_wait > 1000000000000"  # > 1 second (picoseconds in performance_schema)
+    ),
+    "lock_contention": (
+        "SELECT trx_id, trx_state, trx_mysql_thread_id, trx_query "
+        "FROM information_schema.innodb_trx "
+        "WHERE trx_state = 'LOCK WAIT'"
+    ),
+    "long_running_transactions": (
+        "SELECT trx_id, trx_state, trx_mysql_thread_id, trx_query, "
+        "TIMESTAMPDIFF(SECOND, trx_started, NOW()) AS duration_seconds "
+        "FROM information_schema.innodb_trx "
+        "WHERE TIMESTAMPDIFF(SECOND, trx_started, NOW()) > 60"
     ),
 }

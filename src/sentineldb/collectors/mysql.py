@@ -114,5 +114,7 @@ class MySQLCollector:
             "replication_lag",
             "db_size",
             "slow_query_count",
+            "lock_contention",
+            "long_running_transactions",
         ]
         return {k: MYSQL_CATALOG[k] for k in keys if k in MYSQL_CATALOG}

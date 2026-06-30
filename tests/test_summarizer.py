@@ -47,11 +47,13 @@ def test_mocked_litellm_returns_string(
         0
     ].message.content = "Connection pool is saturated. Please increase max_connections."
 
-    with patch("sentineldb.llm.summarizer.litellm.completion", return_value=mock_response):
-        with patch("sentineldb.llm.summarizer.settings") as mock_settings:
-            mock_settings.GOOGLE_API_KEY = "dummy"
-            mock_settings.LITELLM_MODEL = "gemini/gemini-2.5-flash-lite"
-            result = summarizer.summarize(dummy_cause, "100 active connections")
+    with (
+        patch("sentineldb.llm.summarizer.litellm.completion", return_value=mock_response),
+        patch("sentineldb.llm.summarizer.settings") as mock_settings,
+    ):
+        mock_settings.GOOGLE_API_KEY = "dummy"
+        mock_settings.LITELLM_MODEL = "gemini/gemini-2.5-flash-lite"
+        result = summarizer.summarize(dummy_cause, "100 active connections")
 
     assert result == "Connection pool is saturated. Please increase max_connections."
 

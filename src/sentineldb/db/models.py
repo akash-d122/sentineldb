@@ -57,3 +57,16 @@ class IncidentReportORM(Base):
     generated_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class ThresholdConfigORM(Base):
+    __tablename__ = "threshold_configs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    instance_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    metric_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    warning_threshold: Mapped[float] = mapped_column(Float, nullable=False)
+    critical_threshold: Mapped[float] = mapped_column(Float, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )

@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 from sentineldb.core.models import IncidentReport
+from sentineldb.notifications.freshdesk import FreshdeskHandler
 from sentineldb.notifications.jira import JiraHandler
 from sentineldb.notifications.models import NotificationHandler
 from sentineldb.notifications.slack import SlackHandler
@@ -19,6 +20,7 @@ class NotificationDispatcher:
         self.handlers: list[NotificationHandler] = [
             SlackHandler(),
             JiraHandler(),
+            FreshdeskHandler(),
         ]
 
     def dispatch(self, report: IncidentReport) -> None:
