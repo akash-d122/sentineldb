@@ -5,7 +5,6 @@ Unit tests mock boto3 clients.
 
 from __future__ import annotations
 
-import asyncio
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -48,9 +47,7 @@ async def test_cloudwatch_happy_path() -> None:
 @pytest.mark.asyncio
 async def test_cloudwatch_missing_datapoints_returns_unavailable() -> None:
     mock_client = MagicMock()
-    mock_client.get_metric_statistics.return_value = {
-        "Datapoints": []
-    }
+    mock_client.get_metric_statistics.return_value = {"Datapoints": []}
 
     with patch("sentineldb.collectors.cloudwatch.boto3.client", return_value=mock_client):
         collector = CloudWatchCollector(_DEMO_INSTANCE)

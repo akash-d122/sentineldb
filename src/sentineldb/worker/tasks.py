@@ -1,6 +1,7 @@
 """
 Celery background tasks for incident analysis.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -16,7 +17,6 @@ from sentineldb.collectors.postgres import PostgresCollector
 from sentineldb.core.config import settings
 from sentineldb.core.models import AlertPayload, IncidentReport
 from sentineldb.db.models import IncidentORM, IncidentReportORM
-from sentineldb.db.session import AsyncSessionLocal
 from sentineldb.llm.summarizer import LLMSummarizer
 from sentineldb.notifications.dispatcher import NotificationDispatcher
 from sentineldb.registry.loader import InstanceRegistry
@@ -32,6 +32,7 @@ _renderer = Renderer()
 _summarizer = LLMSummarizer()
 _dispatcher = NotificationDispatcher()
 
+
 @celery_app.task(bind=True, max_retries=3)
 def dispatch_notifications(self: Any, incident_id: str) -> None:
     """Task to dispatch notifications asynchronously."""
@@ -42,21 +43,25 @@ def dispatch_notifications(self: Any, incident_id: str) -> None:
         logger.exception("Failed to dispatch notifications for incident %s: %s", incident_id, e)
         raise self.retry(exc=e, countdown=10)
 
+
 async def _dispatch_notifications_async(incident_id: str) -> None:
     engine = create_async_engine(
         settings.DATABASE_URL,
         connect_args={"prepared_statement_cache_size": 0},
         echo=False,
     )
+    from sqlalchemy import select
     from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy.orm import sessionmaker
-    from sqlalchemy import select
 
-    LocalSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False) # type: ignore
+    LocalSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore
 
     async with LocalSession() as session:
         import uuid
-        stmt = select(IncidentReportORM).where(IncidentReportORM.incident_id == uuid.UUID(incident_id))
+
+        stmt = select(IncidentReportORM).where(
+            IncidentReportORM.incident_id == uuid.UUID(incident_id)
+        )
         result = await session.execute(stmt)
         db_report = result.scalar_one_or_none()
 
@@ -68,6 +73,7 @@ async def _dispatch_notifications_async(incident_id: str) -> None:
 
     # Convert back to Pydantic model for dispatcher
     from sentineldb.core.models import IncidentReport
+
     report = IncidentReport.model_validate(db_report, from_attributes=True)
     _dispatcher.dispatch(report)
 
@@ -109,6 +115,7 @@ async def _analyze(incident_id: str, alert: AlertPayload) -> IncidentReport:
         collector = PostgresCollector(instance)
     elif instance.engine == "mysql":
         from sentineldb.collectors.mysql import MySQLCollector
+
         collector = MySQLCollector(instance)
     else:
         raise NotImplementedError(f"Collector for engine {instance.engine} not implemented.")
@@ -118,6 +125,7 @@ async def _analyze(incident_id: str, alert: AlertPayload) -> IncidentReport:
     # 2b. Collect external monitoring evidence if configured
     if instance.monitoring == "cloudwatch":
         from sentineldb.collectors.cloudwatch import CloudWatchCollector
+
         cw_collector = CloudWatchCollector(instance)
         cw_bundle = await cw_collector.collect()
         bundle.items.extend(cw_bundle.items)
@@ -141,10 +149,12 @@ async def _analyze(incident_id: str, alert: AlertPayload) -> IncidentReport:
     polished_summary = _summarizer.summarize(top_cause, evidence_text)
     if polished_summary:
         # Pydantic v2 immutable copy with updates
-        report = report.model_copy(update={
-            "root_cause_summary": polished_summary,
-            "llm_used": True,
-        })
+        report = report.model_copy(
+            update={
+                "root_cause_summary": polished_summary,
+                "llm_used": True,
+            }
+        )
 
     # 7. Persist to DB
     engine = create_async_engine(
@@ -155,7 +165,7 @@ async def _analyze(incident_id: str, alert: AlertPayload) -> IncidentReport:
     from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy.orm import sessionmaker
 
-    LocalSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False) # type: ignore
+    LocalSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore
 
     async with LocalSession() as session:
         # Update incident status
@@ -171,7 +181,9 @@ async def _analyze(incident_id: str, alert: AlertPayload) -> IncidentReport:
             root_cause_summary=report.root_cause_summary,
             why_most_likely=report.why_most_likely,
             evidence=[i.model_dump(mode="json") for i in report.evidence],
-            runbook_reference=report.runbook_reference.model_dump(mode="json") if report.runbook_reference else None,
+            runbook_reference=report.runbook_reference.model_dump(mode="json")
+            if report.runbook_reference
+            else None,
             safe_next_actions=[a.model_dump(mode="json") for a in report.safe_next_actions],
             requires_approval=report.requires_approval,
             missing_evidence=report.missing_evidence,
@@ -195,7 +207,7 @@ async def _mark_failed(incident_id: str) -> None:
     from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy.orm import sessionmaker
 
-    LocalSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False) # type: ignore
+    LocalSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore
 
     async with LocalSession() as session:
         incident = await session.get(IncidentORM, incident_id)

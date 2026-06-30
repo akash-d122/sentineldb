@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     GOOGLE_API_KEY: str = ""
     LITELLM_MODEL: str = "gemini/gemini-2.5-flash-lite"
 
+    # CORS
+    CORS_ORIGINS: list[str] = ["*"]
+
     # Security
     WEBHOOK_SECRET: str = ""
 

@@ -47,6 +47,7 @@ async def test_mysql_query_timeout_produces_unavailable_partial_result() -> None
     class MockCursorCtx:
         async def __aenter__(self):
             return mock_cur
+
         async def __aexit__(self, exc_type, exc, tb):
             pass
 
@@ -56,6 +57,7 @@ async def test_mysql_query_timeout_produces_unavailable_partial_result() -> None
     class MockAcquire:
         async def __aenter__(self):
             return mock_conn
+
         async def __aexit__(self, exc_type, exc, tb):
             pass
 
@@ -64,7 +66,11 @@ async def test_mysql_query_timeout_produces_unavailable_partial_result() -> None
     mock_pool.close = MagicMock()
     mock_pool.wait_closed = AsyncMock()
 
-    with patch("sentineldb.collectors.mysql.aiomysql.create_pool", new_callable=AsyncMock, return_value=mock_pool):
+    with patch(
+        "sentineldb.collectors.mysql.aiomysql.create_pool",
+        new_callable=AsyncMock,
+        return_value=mock_pool,
+    ):
         collector = MySQLCollector(_DEMO_INSTANCE)
         bundle = await collector.collect()
 

@@ -23,6 +23,7 @@ import sqlparse.tokens as T
 
 from sentineldb.guardrails.catalog import MYSQL_CATALOG, POSTGRES_CATALOG
 
+
 def _normalise(sql: str) -> str:
     """Collapse whitespace and strip; case-sensitive for allowlist matching."""
     return re.sub(r"\s+", " ", sql.strip())

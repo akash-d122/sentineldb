@@ -85,10 +85,9 @@ class MySQLCollector:
         if not result.allowed:
             return _unavailable(label, "guardrail_blocked")
 
-        async with pool.acquire() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(sql)
-                row = await cur.fetchone()
+        async with pool.acquire() as conn, conn.cursor() as cur:
+            await cur.execute(sql)
+            row = await cur.fetchone()
 
         if row is None:
             return _unavailable(label, "mysql")

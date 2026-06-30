@@ -7,7 +7,7 @@ Applies rules over an EvidenceBundle to rank CandidateCauses.
 from __future__ import annotations
 
 from sentineldb.core.enums import RCAStrength
-from sentineldb.core.models import CandidateCause, EvidenceBundle, EvidenceItem
+from sentineldb.core.models import CandidateCause, EvidenceBundle
 
 
 class Analyzer:
@@ -46,7 +46,9 @@ class Analyzer:
                 CandidateCause(
                     cause_type="unknown_cause",
                     rca_strength=RCAStrength.Low,
-                    why_most_likely=["No specific diagnostic rules were triggered by the evidence."],
+                    why_most_likely=[
+                        "No specific diagnostic rules were triggered by the evidence."
+                    ],
                 )
             )
 
@@ -93,7 +95,9 @@ class Analyzer:
         return CandidateCause(
             cause_type="connection_saturation",
             rca_strength=strength,
-            why_most_likely=[f"Active connections ({active_val}) are at {saturation:.1%} of max_connections ({max_val})."],
+            why_most_likely=[
+                f"Active connections ({active_val}) are at {saturation:.1%} of max_connections ({max_val})."
+            ],
             supporting_evidence_ids=supporting_ids,
             missing_evidence=missing,
         )

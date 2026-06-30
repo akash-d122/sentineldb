@@ -2,10 +2,11 @@
 Tests for GuardrailChecker — all blocked patterns must be covered before implementation.
 Run: uv run pytest tests/test_guardrails.py
 """
+
 import pytest
 
-from sentineldb.guardrails.checker import GuardrailChecker, GuardrailResult
 from sentineldb.guardrails.catalog import MYSQL_CATALOG, POSTGRES_CATALOG
+from sentineldb.guardrails.checker import GuardrailChecker, GuardrailResult
 
 
 @pytest.fixture
@@ -200,10 +201,12 @@ def test_allowed_result_shape(checker: GuardrailChecker) -> None:
     assert result.reason == ""
     assert result.blocked_pattern is None
 
+
 def test_mysql_catalog_allowed(checker: GuardrailChecker) -> None:
     for name, sql in MYSQL_CATALOG.items():
         result = checker.check(sql, engine="mysql")
         assert result.allowed is True, f"MySQL catalog entry '{name}' blocked: {result.reason}"
+
 
 def test_cross_engine_rejection(checker: GuardrailChecker) -> None:
     pg_sql = next(iter(POSTGRES_CATALOG.values()))

@@ -30,9 +30,7 @@ class IncidentORM(Base):
     severity: Mapped[str] = mapped_column(String(16), nullable=False)
     metric_value: Mapped[float | None] = mapped_column(Float, nullable=True)
     threshold_value: Mapped[float | None] = mapped_column(Float, nullable=True)
-    triggered_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=False
-    )
+    triggered_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="queued")
     raw_payload: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(
@@ -46,9 +44,7 @@ class IncidentReportORM(Base):
     report_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    incident_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), nullable=False, index=True
-    )
+    incident_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     rca_strength: Mapped[str] = mapped_column(String(16), nullable=False)
     root_cause_summary: Mapped[str] = mapped_column(Text, nullable=False)
     why_most_likely: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)

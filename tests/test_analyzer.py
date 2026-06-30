@@ -2,6 +2,7 @@
 Tests for RCA Analyzer rules.
 Golden test scenarios matching the plan for V1A rules.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -16,7 +17,9 @@ def analyzer() -> Analyzer:
     return Analyzer()
 
 
-def _item(label: str, value: float | None = None, status: EvidenceStatus = EvidenceStatus.OK) -> EvidenceItem:
+def _item(
+    label: str, value: float | None = None, status: EvidenceStatus = EvidenceStatus.OK
+) -> EvidenceItem:
     return EvidenceItem(
         source="pg",
         label=label,
@@ -76,7 +79,10 @@ def test_golden_connection_saturation_low(analyzer: Analyzer) -> None:
         # Not returned is fine
         pass
     else:
-        assert causes[0].cause_type != "connection_saturation" or causes[0].rca_strength == RCAStrength.Low
+        assert (
+            causes[0].cause_type != "connection_saturation"
+            or causes[0].rca_strength == RCAStrength.Low
+        )
 
 
 def test_golden_slow_query_cpu_pressure_high(analyzer: Analyzer) -> None:
