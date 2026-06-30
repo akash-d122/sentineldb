@@ -39,4 +39,6 @@ class JiraHandler(NotificationHandler):
             response.raise_for_status()
             logger.info("Successfully created Jira ticket for incident %s", report.incident_id)
         except Exception as e:
-            logger.warning("Failed to create Jira ticket for incident %s: %s", report.incident_id, e)
+            logger.warning(
+                "Failed to create Jira ticket for incident %s: %s", report.incident_id, e
+            )

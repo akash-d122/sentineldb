@@ -6,8 +6,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 import httpx
+import pytest
 
 from sentineldb.core.enums import RCAStrength
 from sentineldb.core.models import IncidentReport
@@ -50,7 +50,10 @@ def test_slack_handler_skips_if_url_not_set(sample_report: IncidentReport) -> No
 
 
 def test_jira_handler_sends_notification(sample_report: IncidentReport) -> None:
-    with patch.dict("os.environ", {"JIRA_WEBHOOK_URL": "http://mock.jira.com/webhook", "JIRA_PROJECT_KEY": "OPS"}):
+    with patch.dict(
+        "os.environ",
+        {"JIRA_WEBHOOK_URL": "http://mock.jira.com/webhook", "JIRA_PROJECT_KEY": "OPS"},
+    ):
         handler = JiraHandler()
         with patch("sentineldb.notifications.jira.httpx.post") as mock_post:
             mock_post.return_value.status_code = 200

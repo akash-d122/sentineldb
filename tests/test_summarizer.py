@@ -27,7 +27,9 @@ def dummy_cause() -> CandidateCause:
     )
 
 
-def test_no_api_key_returns_none(summarizer: LLMSummarizer, dummy_cause: CandidateCause, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_no_api_key_returns_none(
+    summarizer: LLMSummarizer, dummy_cause: CandidateCause, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
     # The summarizer checks settings.GOOGLE_API_KEY, so we mock that too
     with patch("sentineldb.llm.summarizer.settings") as mock_settings:
@@ -36,10 +38,14 @@ def test_no_api_key_returns_none(summarizer: LLMSummarizer, dummy_cause: Candida
     assert result is None
 
 
-def test_mocked_litellm_returns_string(summarizer: LLMSummarizer, dummy_cause: CandidateCause) -> None:
+def test_mocked_litellm_returns_string(
+    summarizer: LLMSummarizer, dummy_cause: CandidateCause
+) -> None:
     mock_response = MagicMock()
     mock_response.choices = [MagicMock()]
-    mock_response.choices[0].message.content = "Connection pool is saturated. Please increase max_connections."
+    mock_response.choices[
+        0
+    ].message.content = "Connection pool is saturated. Please increase max_connections."
 
     with patch("sentineldb.llm.summarizer.litellm.completion", return_value=mock_response):
         with patch("sentineldb.llm.summarizer.settings") as mock_settings:
@@ -50,7 +56,9 @@ def test_mocked_litellm_returns_string(summarizer: LLMSummarizer, dummy_cause: C
     assert result == "Connection pool is saturated. Please increase max_connections."
 
 
-def test_litellm_exception_returns_none(summarizer: LLMSummarizer, dummy_cause: CandidateCause) -> None:
+def test_litellm_exception_returns_none(
+    summarizer: LLMSummarizer, dummy_cause: CandidateCause
+) -> None:
     with patch("sentineldb.llm.summarizer.litellm.completion", side_effect=Exception("API down")):
         with patch("sentineldb.llm.summarizer.settings") as mock_settings:
             mock_settings.GOOGLE_API_KEY = "dummy"

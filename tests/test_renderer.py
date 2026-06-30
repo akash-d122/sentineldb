@@ -1,10 +1,10 @@
 """
 Tests for RCA renderer.
 """
+
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
 
 import pytest
 
@@ -24,7 +24,9 @@ def renderer() -> Renderer:
     return Renderer()
 
 
-def _item(label: str, value: float | None = None, status: EvidenceStatus = EvidenceStatus.OK) -> EvidenceItem:
+def _item(
+    label: str, value: float | None = None, status: EvidenceStatus = EvidenceStatus.OK
+) -> EvidenceItem:
     return EvidenceItem(
         source="pg",
         label=label,
@@ -118,10 +120,7 @@ def test_render_partial_failure_missing_evidence(renderer: Renderer) -> None:
 
 def test_evidence_values_match_exactly(renderer: Renderer) -> None:
     alert = AlertPayload(instance_id="db-1", alert_type=AlertType.cpu_high, severity=Severity.P1)
-    bundle = EvidenceBundle(
-        instance_id="db-1",
-        items=[_item("active_connections", 123.45)]
-    )
+    bundle = EvidenceBundle(instance_id="db-1", items=[_item("active_connections", 123.45)])
     cause = CandidateCause(
         cause_type="unknown_cause",
         rca_strength=RCAStrength.Low,

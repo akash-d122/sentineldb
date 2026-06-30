@@ -1,21 +1,18 @@
 """Tests for core Pydantic models and enums."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
 
-from sentineldb.core.enums import AlertType, EvidenceStatus, IncidentStatus, RCAStrength, Severity
+from sentineldb.core.enums import AlertType, EvidenceStatus, RCAStrength, Severity
 from sentineldb.core.models import (
     AlertPayload,
     CandidateCause,
     EvidenceBundle,
     EvidenceItem,
     IncidentReport,
-    RunbookMatch,
-    SafeAction,
 )
-
 
 # ---------------------------------------------------------------------------
 # AlertPayload
@@ -89,8 +86,11 @@ def test_evidence_item_has_id() -> None:
 def test_evidence_bundle_all_unavailable() -> None:
     items = [
         EvidenceItem(
-            source="pg", label=f"m{i}", value=None,
-            status=EvidenceStatus.UNAVAILABLE, display_text=f"m{i}: UNAVAILABLE"
+            source="pg",
+            label=f"m{i}",
+            value=None,
+            status=EvidenceStatus.UNAVAILABLE,
+            display_text=f"m{i}: UNAVAILABLE",
         )
         for i in range(3)
     ]
@@ -100,15 +100,29 @@ def test_evidence_bundle_all_unavailable() -> None:
 
 def test_evidence_bundle_not_all_unavailable_when_mixed() -> None:
     items = [
-        EvidenceItem(source="pg", label="a", value=1.0, status=EvidenceStatus.OK, display_text="a: 1"),
-        EvidenceItem(source="pg", label="b", value=None, status=EvidenceStatus.UNAVAILABLE, display_text="b: UNAVAILABLE"),
+        EvidenceItem(
+            source="pg", label="a", value=1.0, status=EvidenceStatus.OK, display_text="a: 1"
+        ),
+        EvidenceItem(
+            source="pg",
+            label="b",
+            value=None,
+            status=EvidenceStatus.UNAVAILABLE,
+            display_text="b: UNAVAILABLE",
+        ),
     ]
     bundle = EvidenceBundle(instance_id="db-01", items=items)
     assert bundle.all_unavailable is False
 
 
 def test_evidence_bundle_get() -> None:
-    item = EvidenceItem(source="pg", label="active_connections", value=42.0, status=EvidenceStatus.OK, display_text="42")
+    item = EvidenceItem(
+        source="pg",
+        label="active_connections",
+        value=42.0,
+        status=EvidenceStatus.OK,
+        display_text="42",
+    )
     bundle = EvidenceBundle(instance_id="db-01", items=[item])
     assert bundle.get("active_connections") is item
     assert bundle.get("nonexistent") is None
@@ -144,8 +158,11 @@ def test_candidate_cause_valid() -> None:
 
 def test_incident_report_json_serializable() -> None:
     item = EvidenceItem(
-        source="pg", label="active_connections", value=423.0,
-        status=EvidenceStatus.OK, display_text="423 active connections"
+        source="pg",
+        label="active_connections",
+        value=423.0,
+        status=EvidenceStatus.OK,
+        display_text="423 active connections",
     )
     report = IncidentReport(
         incident_id="inc-001",
@@ -171,10 +188,13 @@ def test_incident_report_llm_used_defaults_false() -> None:
 
 
 def test_incident_report_datetime_no_precision_loss() -> None:
-    ts = datetime(2026, 6, 27, 12, 0, 0, 123456, tzinfo=timezone.utc)
+    ts = datetime(2026, 6, 27, 12, 0, 0, 123456, tzinfo=UTC)
     item = EvidenceItem(
-        source="pg", label="x", value=1.0,
-        status=EvidenceStatus.OK, display_text="x: 1",
+        source="pg",
+        label="x",
+        value=1.0,
+        status=EvidenceStatus.OK,
+        display_text="x: 1",
         timestamp=ts,
     )
     data = item.model_dump()

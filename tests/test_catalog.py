@@ -2,6 +2,7 @@
 Tests for the diagnostic query catalog.
 Every catalog entry must be a non-empty string and pass the GuardrailChecker.
 """
+
 import pytest
 
 from sentineldb.guardrails.catalog import MYSQL_CATALOG, POSTGRES_CATALOG
@@ -27,7 +28,9 @@ def test_catalog_keys_are_strings() -> None:
 
 def test_catalog_values_are_nonempty_strings() -> None:
     for name, sql in POSTGRES_CATALOG.items():
-        assert isinstance(sql, str) and sql.strip(), f"Postgres Catalog entry '{name}' has empty SQL"
+        assert isinstance(sql, str) and sql.strip(), (
+            f"Postgres Catalog entry '{name}' has empty SQL"
+        )
     for name, sql in MYSQL_CATALOG.items():
         assert isinstance(sql, str) and sql.strip(), f"MySQL Catalog entry '{name}' has empty SQL"
 

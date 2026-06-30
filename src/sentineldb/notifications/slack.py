@@ -57,7 +57,9 @@ class SlackHandler(NotificationHandler):
         ]
 
         if report.safe_next_actions:
-            actions_text = "\n".join(f"- {a.label}: {a.description}" for a in report.safe_next_actions)
+            actions_text = "\n".join(
+                f"- {a.label}: {a.description}" for a in report.safe_next_actions
+            )
             blocks.append(
                 {
                     "type": "section",
@@ -79,4 +81,6 @@ class SlackHandler(NotificationHandler):
             response.raise_for_status()
             logger.info("Successfully sent Slack notification for incident %s", report.incident_id)
         except Exception as e:
-            logger.warning("Failed to send Slack notification for incident %s: %s", report.incident_id, e)
+            logger.warning(
+                "Failed to send Slack notification for incident %s: %s", report.incident_id, e
+            )

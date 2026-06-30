@@ -4,8 +4,8 @@ Unit tests for the FastAPI API.
 
 from __future__ import annotations
 
-import hmac
 import hashlib
+import hmac
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -53,7 +53,9 @@ def test_post_alert_wrong_hmac(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @patch("sentineldb.api.routes_alerts.run_incident_analysis")
-def test_post_alert_valid_payload_mocked_celery(mock_celery_task: MagicMock, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_post_alert_valid_payload_mocked_celery(
+    mock_celery_task: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
     # Disable HMAC for this test, or compute it correctly
     monkeypatch.setattr(settings, "WEBHOOK_SECRET", "testsecret")
 
@@ -74,6 +76,7 @@ def test_post_alert_valid_payload_mocked_celery(mock_celery_task: MagicMock, mon
 
     # Mock the dependency injection to return our mock session
     from sentineldb.db.session import get_session
+
     app.dependency_overrides[get_session] = lambda: mock_session
 
     try:

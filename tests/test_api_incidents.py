@@ -6,12 +6,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
+
 from sentineldb.api.main import app
-from sentineldb.db.session import get_session
-from sentineldb.db.models import IncidentORM, IncidentReportORM
 from sentineldb.core.enums import IncidentStatus
+from sentineldb.db.models import IncidentORM, IncidentReportORM
+from sentineldb.db.session import get_session
 
 client = TestClient(app)
+
 
 @pytest.fixture
 def mock_session():
@@ -19,6 +21,7 @@ def mock_session():
     app.dependency_overrides[get_session] = lambda: session
     yield session
     app.dependency_overrides.pop(get_session, None)
+
 
 @pytest.mark.asyncio
 async def test_get_incidents_empty(mock_session: AsyncMock) -> None:
@@ -30,6 +33,7 @@ async def test_get_incidents_empty(mock_session: AsyncMock) -> None:
     response = client.get("/api/v1/incidents")
     assert response.status_code == 200
     assert response.json() == []
+
 
 @pytest.mark.asyncio
 async def test_get_incidents_list(mock_session: AsyncMock) -> None:
@@ -43,7 +47,7 @@ async def test_get_incidents_list(mock_session: AsyncMock) -> None:
         triggered_at=datetime.now(UTC),
         status=IncidentStatus.queued.value,
         raw_payload={"source": "test"},
-        created_at=datetime.now(UTC)
+        created_at=datetime.now(UTC),
     )
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = [incident_1]
@@ -56,6 +60,7 @@ async def test_get_incidents_list(mock_session: AsyncMock) -> None:
     assert data[0]["instance_id"] == "test-db"
     assert data[0]["alert_type"] == "cpu_high"
 
+
 @pytest.mark.asyncio
 async def test_get_incident_by_id(mock_session: AsyncMock) -> None:
     incident_id = uuid.uuid4()
@@ -66,7 +71,7 @@ async def test_get_incident_by_id(mock_session: AsyncMock) -> None:
         severity="P2",
         triggered_at=datetime.now(UTC),
         status=IncidentStatus.queued.value,
-        created_at=datetime.now(UTC)
+        created_at=datetime.now(UTC),
     )
     mock_result = MagicMock()
     mock_result.scalars.return_value.first.return_value = incident
@@ -75,6 +80,7 @@ async def test_get_incident_by_id(mock_session: AsyncMock) -> None:
     response = client.get(f"/api/v1/incidents/{incident_id}")
     assert response.status_code == 200
     assert response.json()["instance_id"] == "test-db-2"
+
 
 @pytest.mark.asyncio
 async def test_get_report_states_queued(mock_session: AsyncMock) -> None:
@@ -94,6 +100,7 @@ async def test_get_report_states_queued(mock_session: AsyncMock) -> None:
     resp_queued = client.get(f"/api/v1/incidents/{incident_id}/report")
     assert resp_queued.status_code == 202
     assert "in progress" in resp_queued.json()["message"]
+
 
 @pytest.mark.asyncio
 async def test_get_report_states_ready(mock_session: AsyncMock) -> None:
@@ -117,13 +124,13 @@ async def test_get_report_states_ready(mock_session: AsyncMock) -> None:
         requires_approval=[],
         missing_evidence=[],
         llm_used=False,
-        generated_at=datetime.now(UTC)
+        generated_at=datetime.now(UTC),
     )
-    
+
     # We call execute twice: first for incident, second for report
     mock_result_incident = MagicMock()
     mock_result_incident.scalars.return_value.first.return_value = incident_ready
-    
+
     mock_result_report = MagicMock()
     mock_result_report.scalars.return_value.first.return_value = report
 
@@ -133,31 +140,29 @@ async def test_get_report_states_ready(mock_session: AsyncMock) -> None:
     assert resp_ready.status_code == 200
     assert resp_ready.json()["root_cause_summary"] == "DB is down"
 
+
 @pytest.mark.asyncio
 async def test_manual_trigger_invalid_instance() -> None:
-    payload = {
-        "instance_id": "unknown-db",
-        "alert_type": "cpu_high"
-    }
+    payload = {"instance_id": "unknown-db", "alert_type": "cpu_high"}
     response = client.post("/api/v1/incidents/analyze", json=payload)
     assert response.status_code == 400
     assert "INSTANCE_NOT_REGISTERED" in response.json()["detail"]
 
+
 @patch("sentineldb.api.routes_incidents.run_incident_analysis")
 @pytest.mark.asyncio
-async def test_manual_trigger_success(mock_celery_task: MagicMock, mock_session: AsyncMock, monkeypatch: pytest.MonkeyPatch) -> None:
-    import yaml
+async def test_manual_trigger_success(
+    mock_celery_task: MagicMock, mock_session: AsyncMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
     def mock_load():
         return {"test-db": {"engine": "mysql"}}
-    
+
     import sentineldb.api.routes_incidents
+
     monkeypatch.setattr(sentineldb.api.routes_incidents, "_load_registry", mock_load)
 
-    payload = {
-        "instance_id": "test-db",
-        "alert_type": "cpu_high"
-    }
-    
+    payload = {"instance_id": "test-db", "alert_type": "cpu_high"}
+
     response = client.post("/api/v1/incidents/analyze", json=payload)
     assert response.status_code == 202
     assert response.json()["status"] == "accepted"

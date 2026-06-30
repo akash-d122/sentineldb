@@ -1,22 +1,23 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any, List
-from pydantic import BaseModel
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
 from datetime import datetime
+from typing import Any
 
-from sentineldb.db.session import get_session
-from sentineldb.db.models import IncidentORM, IncidentReportORM
-from sentineldb.core.models import AlertPayload
-from sentineldb.core.enums import AlertType, Severity, IncidentStatus
-from sentineldb.worker.tasks import run_incident_analysis
-from sentineldb.core.config import settings
 import yaml
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+from sqlalchemy import desc, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from sentineldb.core.enums import AlertType, IncidentStatus, Severity
+from sentineldb.core.models import AlertPayload
+from sentineldb.db.models import IncidentORM, IncidentReportORM
+from sentineldb.db.session import get_session
+from sentineldb.worker.tasks import run_incident_analysis
 
 router = APIRouter(prefix="/api/v1/incidents", tags=["incidents"])
+
 
 class IncidentResponse(BaseModel):
     incident_id: uuid.UUID
@@ -29,6 +30,7 @@ class IncidentResponse(BaseModel):
     status: str
     created_at: datetime
 
+
 class ManualTriggerRequest(BaseModel):
     instance_id: str
     alert_type: AlertType
@@ -36,21 +38,23 @@ class ManualTriggerRequest(BaseModel):
     metric_value: float | None = None
     threshold_value: float | None = None
 
+
 def _load_registry() -> dict[str, dict]:
     try:
-        with open("instances.yaml", "r") as f:
+        with open("instances.yaml") as f:
             data = yaml.safe_load(f)
             return data.get("instances", {})
     except Exception:
         return {}
 
-@router.get("", response_model=List[IncidentResponse])
+
+@router.get("", response_model=list[IncidentResponse])
 async def list_incidents(
     skip: int = 0,
     limit: int = 100,
     status: IncidentStatus | None = None,
     instance_id: str | None = None,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
 ) -> Any:
     """Get a list of incidents, optionally filtered."""
     stmt = select(IncidentORM).order_by(desc(IncidentORM.created_at)).offset(skip).limit(limit)
@@ -58,16 +62,14 @@ async def list_incidents(
         stmt = stmt.where(IncidentORM.status == status.value)
     if instance_id:
         stmt = stmt.where(IncidentORM.instance_id == instance_id)
-        
+
     result = await session.execute(stmt)
     incidents = result.scalars().all()
     return incidents
 
+
 @router.get("/{incident_id}", response_model=IncidentResponse)
-async def get_incident(
-    incident_id: uuid.UUID,
-    session: AsyncSession = Depends(get_session)
-) -> Any:
+async def get_incident(incident_id: uuid.UUID, session: AsyncSession = Depends(get_session)) -> Any:
     """Get a single incident by ID."""
     stmt = select(IncidentORM).where(IncidentORM.incident_id == incident_id)
     result = await session.execute(stmt)
@@ -76,26 +78,34 @@ async def get_incident(
         raise HTTPException(status_code=404, detail="Incident not found")
     return incident
 
+
 @router.get("/{incident_id}/report")
 async def get_incident_report(
-    incident_id: uuid.UUID,
-    session: AsyncSession = Depends(get_session)
+    incident_id: uuid.UUID, session: AsyncSession = Depends(get_session)
 ) -> Any:
     """Get the RCA report for an incident. Returns 202 if not yet ready."""
     # First check if incident exists and its status
     stmt = select(IncidentORM).where(IncidentORM.incident_id == incident_id)
     result = await session.execute(stmt)
     incident = result.scalars().first()
-    
+
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
-        
+
     from fastapi.responses import JSONResponse
-    if incident.status in (IncidentStatus.queued.value, IncidentStatus.collecting.value, IncidentStatus.analyzing.value):
+
+    if incident.status in (
+        IncidentStatus.queued.value,
+        IncidentStatus.collecting.value,
+        IncidentStatus.analyzing.value,
+    ):
         return JSONResponse(
-            status_code=status.HTTP_202_ACCEPTED, 
-            content={"status": "accepted", "message": f"Incident analysis in progress (status: {incident.status})"}
-        )        
+            status_code=status.HTTP_202_ACCEPTED,
+            content={
+                "status": "accepted",
+                "message": f"Incident analysis in progress (status: {incident.status})",
+            },
+        )
     if incident.status == IncidentStatus.failed.value:
         raise HTTPException(status_code=500, detail="Incident analysis failed")
 
@@ -103,11 +113,11 @@ async def get_incident_report(
     stmt_report = select(IncidentReportORM).where(IncidentReportORM.incident_id == incident_id)
     res_report = await session.execute(stmt_report)
     report = res_report.scalars().first()
-    
+
     if not report:
         # Should not happen if status is report_ready, but handle safely
         raise HTTPException(status_code=404, detail="Report not found for incident")
-        
+
     return {
         "report_id": str(report.report_id),
         "incident_id": str(report.incident_id),
@@ -120,13 +130,13 @@ async def get_incident_report(
         "requires_approval": report.requires_approval,
         "missing_evidence": report.missing_evidence,
         "llm_used": report.llm_used,
-        "generated_at": report.generated_at
+        "generated_at": report.generated_at,
     }
+
 
 @router.post("/analyze", status_code=status.HTTP_202_ACCEPTED)
 async def trigger_manual_analysis(
-    req: ManualTriggerRequest,
-    session: AsyncSession = Depends(get_session)
+    req: ManualTriggerRequest, session: AsyncSession = Depends(get_session)
 ) -> Any:
     """Manually trigger an incident analysis."""
     registry = _load_registry()
@@ -140,9 +150,9 @@ async def trigger_manual_analysis(
         severity=req.severity,
         metric_value=req.metric_value,
         threshold_value=req.threshold_value,
-        raw_payload={"source": "manual_trigger"}
+        raw_payload={"source": "manual_trigger"},
     )
-    
+
     incident = IncidentORM(
         instance_id=payload.instance_id,
         alert_type=payload.alert_type.value,
@@ -159,7 +169,7 @@ async def trigger_manual_analysis(
 
     incident_id_str = str(incident.incident_id)
     payload_dict = payload.model_dump(mode="json")
-    
+
     # Enqueue analysis
     run_incident_analysis.delay(incident_id_str, payload_dict)
 

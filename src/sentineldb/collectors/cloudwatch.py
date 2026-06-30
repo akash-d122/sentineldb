@@ -78,9 +78,7 @@ class CloudWatchCollector:
             response = client.get_metric_statistics(
                 Namespace="AWS/RDS",
                 MetricName=metric_name,
-                Dimensions=[
-                    {"Name": "DBInstanceIdentifier", "Value": self._db_identifier}
-                ],
+                Dimensions=[{"Name": "DBInstanceIdentifier", "Value": self._db_identifier}],
                 StartTime=start_time,
                 EndTime=now,
                 Period=300,

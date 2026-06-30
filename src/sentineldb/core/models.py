@@ -63,9 +63,7 @@ class EvidenceItem(BaseModel):
     @model_validator(mode="after")
     def value_required_when_ok(self) -> EvidenceItem:
         if self.status != EvidenceStatus.UNAVAILABLE and self.value is None:
-            raise ValueError(
-                f"EvidenceItem.value must be set when status={self.status.value}"
-            )
+            raise ValueError(f"EvidenceItem.value must be set when status={self.status.value}")
         return self
 
 
@@ -86,9 +84,7 @@ class EvidenceBundle(BaseModel):
 
     @property
     def all_unavailable(self) -> bool:
-        return bool(self.items) and all(
-            i.status == EvidenceStatus.UNAVAILABLE for i in self.items
-        )
+        return bool(self.items) and all(i.status == EvidenceStatus.UNAVAILABLE for i in self.items)
 
 
 class CandidateCause(BaseModel):
