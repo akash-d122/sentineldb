@@ -129,6 +129,12 @@ async def _analyze(incident_id: str, alert: AlertPayload) -> IncidentReport:
         cw_collector = CloudWatchCollector(instance)
         cw_bundle = await cw_collector.collect()
         bundle.items.extend(cw_bundle.items)
+    elif instance.monitoring == "prometheus":
+        from sentineldb.collectors.prometheus import PrometheusCollector
+
+        prom_collector = PrometheusCollector(instance)
+        prom_bundle = await prom_collector.collect()
+        bundle.items.extend(prom_bundle.items)
 
     # 3. Analyze
     causes = _analyzer.rank_causes(bundle)

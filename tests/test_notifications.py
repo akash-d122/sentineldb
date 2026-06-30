@@ -12,6 +12,7 @@ import pytest
 from sentineldb.core.enums import RCAStrength
 from sentineldb.core.models import IncidentReport
 from sentineldb.notifications.dispatcher import NotificationDispatcher
+from sentineldb.notifications.freshdesk import FreshdeskHandler
 from sentineldb.notifications.jira import JiraHandler
 from sentineldb.notifications.slack import SlackHandler
 
@@ -63,6 +64,23 @@ def test_jira_handler_sends_notification(sample_report: IncidentReport) -> None:
             args, kwargs = mock_post.call_args
             assert args[0] == "http://mock.jira.com/webhook"
             assert kwargs["json"]["fields"]["project"]["key"] == "OPS"
+
+
+def test_freshdesk_handler_sends_notification(sample_report: IncidentReport) -> None:
+    with patch.dict(
+        "os.environ",
+        {"FRESHDESK_DOMAIN": "mockdomain", "FRESHDESK_API_KEY": "mockkey"},
+    ):
+        handler = FreshdeskHandler()
+        with patch("sentineldb.notifications.freshdesk.httpx.post") as mock_post:
+            mock_post.return_value.status_code = 201
+            handler.notify(sample_report)
+
+            mock_post.assert_called_once()
+            args, kwargs = mock_post.call_args
+            assert args[0] == "https://mockdomain.freshdesk.com/api/v2/tickets"
+            assert kwargs["auth"] == ("mockkey", "X")
+            assert kwargs["json"]["priority"] == 2
 
 
 def test_dispatcher_calls_all_handlers(sample_report: IncidentReport) -> None:

@@ -18,10 +18,15 @@ from sentineldb.core.enums import EvidenceStatus
 from sentineldb.core.models import EvidenceBundle, EvidenceItem
 from sentineldb.registry.models import InstanceConfig
 
-# We will collect a few standard metrics from the AWS/RDS namespace
+# We will collect standard metrics from the AWS/RDS namespace
 _METRICS = {
     "cloudwatch_cpu": "CPUUtilization",
     "cloudwatch_connections": "DatabaseConnections",
+    "cloudwatch_read_iops": "ReadIOPS",
+    "cloudwatch_write_iops": "WriteIOPS",
+    "cloudwatch_freeable_memory": "FreeableMemory",
+    "cloudwatch_free_storage_space": "FreeStorageSpace",
+    "cloudwatch_aurora_replica_lag": "AuroraReplicaLag",
 }
 
 

@@ -37,7 +37,7 @@ async def test_cloudwatch_happy_path() -> None:
         bundle = await collector.collect()
 
     assert bundle.instance_id == "db-demo-01"
-    assert len(bundle.items) == 2
+    assert len(bundle.items) == 7
     for item in bundle.items:
         assert item.status == EvidenceStatus.OK
         assert item.value == 45.5
@@ -53,7 +53,7 @@ async def test_cloudwatch_missing_datapoints_returns_unavailable() -> None:
         collector = CloudWatchCollector(_DEMO_INSTANCE)
         bundle = await collector.collect()
 
-    assert len(bundle.items) == 2
+    assert len(bundle.items) == 7
     assert all(item.status == EvidenceStatus.UNAVAILABLE for item in bundle.items)
 
 
@@ -66,5 +66,5 @@ async def test_cloudwatch_api_error_returns_unavailable() -> None:
         collector = CloudWatchCollector(_DEMO_INSTANCE)
         bundle = await collector.collect()
 
-    assert len(bundle.items) == 2
+    assert len(bundle.items) == 7
     assert all(item.status == EvidenceStatus.UNAVAILABLE for item in bundle.items)

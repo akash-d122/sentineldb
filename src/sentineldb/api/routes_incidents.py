@@ -9,12 +9,17 @@ from pydantic import BaseModel
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sentineldb.api.dependencies import verify_jwt
 from sentineldb.core.enums import AlertType, IncidentStatus, Severity
 from sentineldb.core.models import AlertPayload
 from sentineldb.db.models import IncidentORM, IncidentReportORM
 from sentineldb.db.session import get_session
 
-router = APIRouter(prefix="/api/v1/incidents", tags=["incidents"])
+router = APIRouter(
+    prefix="/api/v1/incidents",
+    tags=["incidents"],
+    dependencies=[Depends(verify_jwt)],
+)
 
 
 class IncidentResponse(BaseModel):
@@ -35,15 +40,6 @@ class ManualTriggerRequest(BaseModel):
     severity: Severity = Severity.P3
     metric_value: float | None = None
     threshold_value: float | None = None
-
-
-def _load_registry() -> dict[str, dict]:
-    try:
-        with open("instances.yaml") as f:
-            data = yaml.safe_load(f)
-            return data.get("instances", {})
-    except Exception:
-        return {}
 
 
 @router.get("", response_model=list[IncidentResponse])
