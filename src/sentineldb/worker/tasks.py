@@ -70,6 +70,13 @@ async def _analyze(incident_id: str, alert: AlertPayload) -> IncidentReport:
 
     bundle = await collector.collect()
 
+    # 2b. Collect external monitoring evidence if configured
+    if instance.monitoring == "cloudwatch":
+        from sentineldb.collectors.cloudwatch import CloudWatchCollector
+        cw_collector = CloudWatchCollector(instance)
+        cw_bundle = await cw_collector.collect()
+        bundle.items.extend(cw_bundle.items)
+
     # 3. Analyze
     causes = _analyzer.rank_causes(bundle)
     top_cause = causes[0]
