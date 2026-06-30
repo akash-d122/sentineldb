@@ -1,11 +1,11 @@
-import asyncio
-from fastapi.testclient import TestClient
-from sentineldb.api.main import app
-from sentineldb.api.dependencies import verify_jwt
-from sentineldb.db.session import get_session
-from unittest.mock import AsyncMock, MagicMock
-import os
 import base64
+import os
+from unittest.mock import AsyncMock, MagicMock
+
+from fastapi.testclient import TestClient
+
+from sentineldb.api.main import app
+from sentineldb.db.session import get_session
 
 os.environ["AUTH_ENFORCED"] = "true"
 

@@ -12,14 +12,14 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from sentineldb.api.dependencies import verify_jwt
+from sentineldb.api.dependencies import set_tenant_context, verify_jwt
 from sentineldb.db.models import ThresholdConfigORM
 from sentineldb.db.session import get_session
 
 router = APIRouter(
     prefix="/api/v1/config/thresholds",
     tags=["config"],
-    dependencies=[Depends(verify_jwt)],
+    dependencies=[Depends(verify_jwt), Depends(set_tenant_context)],
 )
 
 class ThresholdConfigSchema(BaseModel):
