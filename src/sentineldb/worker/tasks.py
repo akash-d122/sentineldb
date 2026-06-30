@@ -18,6 +18,7 @@ from sentineldb.core.models import AlertPayload, IncidentReport
 from sentineldb.db.models import IncidentORM, IncidentReportORM
 from sentineldb.db.session import AsyncSessionLocal
 from sentineldb.llm.summarizer import LLMSummarizer
+from sentineldb.notifications.dispatcher import NotificationDispatcher
 from sentineldb.registry.loader import InstanceRegistry
 from sentineldb.worker.app import celery_app
 
@@ -29,6 +30,46 @@ _retriever = RunbookRetriever()
 _analyzer = Analyzer()
 _renderer = Renderer()
 _summarizer = LLMSummarizer()
+_dispatcher = NotificationDispatcher()
+
+@celery_app.task(bind=True, max_retries=3)
+def dispatch_notifications(self: Any, incident_id: str) -> None:
+    """Task to dispatch notifications asynchronously."""
+    logger.info("Starting notification dispatch for incident %s", incident_id)
+    try:
+        asyncio.run(_dispatch_notifications_async(incident_id))
+    except Exception as e:
+        logger.exception("Failed to dispatch notifications for incident %s: %s", incident_id, e)
+        raise self.retry(exc=e, countdown=10)
+
+async def _dispatch_notifications_async(incident_id: str) -> None:
+    engine = create_async_engine(
+        settings.DATABASE_URL,
+        connect_args={"prepared_statement_cache_size": 0},
+        echo=False,
+    )
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy import select
+
+    LocalSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False) # type: ignore
+
+    async with LocalSession() as session:
+        import uuid
+        stmt = select(IncidentReportORM).where(IncidentReportORM.incident_id == uuid.UUID(incident_id))
+        result = await session.execute(stmt)
+        db_report = result.scalar_one_or_none()
+
+    await engine.dispose()
+
+    if not db_report:
+        logger.error("Could not find report for incident %s to notify", incident_id)
+        return
+
+    # Convert back to Pydantic model for dispatcher
+    from sentineldb.core.models import IncidentReport
+    report = IncidentReport.model_validate(db_report, from_attributes=True)
+    _dispatcher.dispatch(report)
 
 
 @celery_app.task(bind=True, max_retries=3)
@@ -46,6 +87,10 @@ def run_incident_analysis(self: Any, incident_id: str, alert_payload_dict: dict[
     try:
         alert = AlertPayload.model_validate(alert_payload_dict)
         report = asyncio.run(_analyze(incident_id, alert))
+
+        # Enqueue the notifications task
+        dispatch_notifications.delay(incident_id)
+
         return report.report_id
     except Exception as e:
         logger.exception("Task failed for incident %s: %s", incident_id, e)
