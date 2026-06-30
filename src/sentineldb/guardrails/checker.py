@@ -3,7 +3,7 @@ GuardrailChecker — allowlist-first SQL safety checker.
 
 Strategy:
 1. Normalise whitespace and strip the input SQL.
-2. Check against the DIAGNOSTIC_CATALOG allowlist (exact match).
+2. Check against the engine-specific allowlist (exact match).
    - Match  → allowed immediately; no further parsing needed.
    - No match → blocked immediately; sqlparse is then used only to
      determine *which* blocked pattern fired (for logging/auditing).
@@ -21,16 +21,20 @@ import sqlparse
 import sqlparse.sql
 import sqlparse.tokens as T
 
-from sentineldb.guardrails.catalog import DIAGNOSTIC_CATALOG
+from sentineldb.guardrails.catalog import MYSQL_CATALOG, POSTGRES_CATALOG
 
 def _normalise(sql: str) -> str:
     """Collapse whitespace and strip; case-sensitive for allowlist matching."""
     return re.sub(r"\s+", " ", sql.strip())
 
 
-# Pre-compute normalised catalog for fast exact-match lookup.
-_CATALOG_NORMALISED: frozenset[str] = frozenset(
-    _normalise(sql) for sql in DIAGNOSTIC_CATALOG.values()
+# Pre-compute normalised catalogs for fast exact-match lookup.
+_PG_CATALOG_NORMALISED: frozenset[str] = frozenset(
+    _normalise(sql) for sql in POSTGRES_CATALOG.values()
+)
+
+_MYSQL_CATALOG_NORMALISED: frozenset[str] = frozenset(
+    _normalise(sql) for sql in MYSQL_CATALOG.values()
 )
 
 
@@ -65,22 +69,23 @@ _RE_SET_GLOBAL = re.compile(r"\bSET\s+GLOBAL\b", re.IGNORECASE)
 class GuardrailChecker:
     """Allowlist-first SQL safety checker."""
 
-    def check(self, sql: str) -> GuardrailResult:
+    def check(self, sql: str, engine: str = "postgresql") -> GuardrailResult:
         """
-        Return GuardrailResult.allowed=True only when sql is an exact catalog match.
+        Return GuardrailResult.allowed=True only when sql is an exact catalog match for the given engine.
         All non-catalog SQL is rejected; sqlparse identifies the blocked pattern.
         """
         normalised = _normalise(sql)
+        catalog = _PG_CATALOG_NORMALISED if engine == "postgresql" else _MYSQL_CATALOG_NORMALISED
 
         # ── Step 1: Allowlist check ──────────────────────────────────────────
-        if normalised in _CATALOG_NORMALISED:
+        if normalised in catalog:
             return GuardrailResult(allowed=True)
 
         # ── Step 2: Not in catalog → blocked. Use sqlparse to name the pattern.
         blocked_pattern = self._identify_blocked_pattern(normalised, sql)
         return GuardrailResult(
             allowed=False,
-            reason=f"SQL not in approved diagnostic catalog. Blocked pattern: {blocked_pattern}",
+            reason=f"SQL not in approved diagnostic catalog for engine '{engine}'. Blocked pattern: {blocked_pattern}",
             blocked_pattern=blocked_pattern,
         )
 

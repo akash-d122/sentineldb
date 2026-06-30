@@ -22,6 +22,7 @@ class Renderer:
 
     def render(
         self,
+        incident_id: str,
         alert: AlertPayload,
         cause: CandidateCause,
         bundle: EvidenceBundle,
@@ -30,7 +31,7 @@ class Renderer:
         """Render the complete IncidentReport (deterministic path)."""
 
         return IncidentReport(
-            incident_id=alert.instance_id,  # In real flow, incident_id comes from DB row
+            incident_id=incident_id,
             rca_strength=cause.rca_strength,
             root_cause_summary=self._template_summary(cause, bundle),
             why_most_likely=cause.why_most_likely,

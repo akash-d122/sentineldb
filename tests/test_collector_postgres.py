@@ -15,7 +15,7 @@ import pytest
 
 from sentineldb.collectors.postgres import PostgresCollector
 from sentineldb.core.enums import EvidenceStatus
-from sentineldb.guardrails.catalog import DIAGNOSTIC_CATALOG
+from sentineldb.guardrails.catalog import POSTGRES_CATALOG
 from sentineldb.guardrails.checker import GuardrailChecker
 from sentineldb.registry.models import InstanceConfig
 
@@ -133,8 +133,8 @@ async def test_pg_stat_statements_unavailable_returns_unavailable_item() -> None
 def test_all_catalog_queries_pass_guardrail_checker() -> None:
     """All queries used by the collector must be in the approved catalog."""
     checker = GuardrailChecker()
-    for name, sql in DIAGNOSTIC_CATALOG.items():
-        result = checker.check(sql)
+    for name, sql in POSTGRES_CATALOG.items():
+        result = checker.check(sql, engine="postgresql")
         assert result.allowed, f"Catalog query '{name}' failed guardrail: {result.reason}"
 
 
