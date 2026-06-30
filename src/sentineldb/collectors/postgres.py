@@ -16,7 +16,7 @@ import asyncpg
 
 from sentineldb.core.enums import EvidenceStatus
 from sentineldb.core.models import EvidenceBundle, EvidenceItem
-from sentineldb.guardrails.catalog import DIAGNOSTIC_CATALOG
+from sentineldb.guardrails.catalog import POSTGRES_CATALOG
 from sentineldb.guardrails.checker import GuardrailChecker
 from sentineldb.registry.models import InstanceConfig
 
@@ -103,7 +103,7 @@ class PostgresCollector:
             "db_size",
             "slow_query_count",
         ]
-        return {k: DIAGNOSTIC_CATALOG[k] for k in keys if k in DIAGNOSTIC_CATALOG}
+        return {k: POSTGRES_CATALOG[k] for k in keys if k in POSTGRES_CATALOG}
 
     def _build_dsn(self) -> str:
         """Build asyncpg DSN from InstanceConfig + env credential."""
