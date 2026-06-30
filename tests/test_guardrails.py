@@ -5,7 +5,7 @@ Run: uv run pytest tests/test_guardrails.py
 import pytest
 
 from sentineldb.guardrails.checker import GuardrailChecker, GuardrailResult
-from sentineldb.guardrails.catalog import DIAGNOSTIC_CATALOG
+from sentineldb.guardrails.catalog import MYSQL_CATALOG, POSTGRES_CATALOG
 
 
 @pytest.fixture
@@ -19,13 +19,13 @@ def checker() -> GuardrailChecker:
 
 
 def test_exact_catalog_match_allowed(checker: GuardrailChecker) -> None:
-    sql = next(iter(DIAGNOSTIC_CATALOG.values()))
+    sql = next(iter(POSTGRES_CATALOG.values()))
     result = checker.check(sql)
     assert result.allowed is True, f"Expected catalog SQL to be allowed: {result.reason}"
 
 
 def test_all_catalog_entries_allowed(checker: GuardrailChecker) -> None:
-    for name, sql in DIAGNOSTIC_CATALOG.items():
+    for name, sql in POSTGRES_CATALOG.items():
         result = checker.check(sql)
         assert result.allowed is True, f"Catalog entry '{name}' blocked: {result.reason}"
 
@@ -149,7 +149,7 @@ def test_mixed_case_bypass_blocked(checker: GuardrailChecker) -> None:
 
 def test_inline_comment_bypass_blocked(checker: GuardrailChecker) -> None:
     # Appending a comment to a catalog query must be rejected (not exact match)
-    first_catalog_sql = next(iter(DIAGNOSTIC_CATALOG.values()))
+    first_catalog_sql = next(iter(POSTGRES_CATALOG.values()))
     result = checker.check(first_catalog_sql + " -- comment")
     assert result.allowed is False
 
@@ -193,9 +193,23 @@ def test_blocked_result_has_reason(checker: GuardrailChecker) -> None:
 
 
 def test_allowed_result_shape(checker: GuardrailChecker) -> None:
-    sql = next(iter(DIAGNOSTIC_CATALOG.values()))
+    sql = next(iter(POSTGRES_CATALOG.values()))
     result = checker.check(sql)
     assert isinstance(result, GuardrailResult)
     assert result.allowed is True
     assert result.reason == ""
     assert result.blocked_pattern is None
+
+def test_mysql_catalog_allowed(checker: GuardrailChecker) -> None:
+    for name, sql in MYSQL_CATALOG.items():
+        result = checker.check(sql, engine="mysql")
+        assert result.allowed is True, f"MySQL catalog entry '{name}' blocked: {result.reason}"
+
+def test_cross_engine_rejection(checker: GuardrailChecker) -> None:
+    pg_sql = next(iter(POSTGRES_CATALOG.values()))
+    result = checker.check(pg_sql, engine="mysql")
+    assert result.allowed is False, "PG SQL should be rejected when engine is mysql"
+
+    mysql_sql = next(iter(MYSQL_CATALOG.values()))
+    result = checker.check(mysql_sql, engine="postgresql")
+    assert result.allowed is False, "MySQL SQL should be rejected when engine is postgresql"

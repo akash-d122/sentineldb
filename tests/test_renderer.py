@@ -59,7 +59,7 @@ def test_render_connection_saturation_report(renderer: Renderer) -> None:
         score=0.8,
     )
 
-    report = renderer.render(alert, cause, bundle, runbook)
+    report = renderer.render("test-inc-1", alert, cause, bundle, runbook)
 
     assert report.rca_strength == RCAStrength.High
     assert "saturation" in report.root_cause_summary.lower()
@@ -87,7 +87,7 @@ def test_render_slow_query_scrubs_pii_from_summary(renderer: Renderer) -> None:
         supporting_evidence_ids=[],
     )
 
-    report = renderer.render(alert, cause, bundle, None)
+    report = renderer.render("test-inc-2", alert, cause, bundle, None)
 
     # Values in summary should use display text, no explicit hostnames
     assert "db.internal" not in report.root_cause_summary
@@ -108,7 +108,7 @@ def test_render_partial_failure_missing_evidence(renderer: Renderer) -> None:
         missing_evidence=["slow_query_count"],
     )
 
-    report = renderer.render(alert, cause, bundle, None)
+    report = renderer.render("test-inc-2", alert, cause, bundle, None)
 
     assert report.rca_strength == RCAStrength.Medium
     assert len(report.missing_evidence) == 1
@@ -128,5 +128,5 @@ def test_evidence_values_match_exactly(renderer: Renderer) -> None:
         why_most_likely=["No rules fired"],
     )
 
-    report = renderer.render(alert, cause, bundle, None)
+    report = renderer.render("test-inc-2", alert, cause, bundle, None)
     assert report.evidence[0].value == 123.45

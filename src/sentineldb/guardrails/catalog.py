@@ -6,7 +6,7 @@ Each entry maps a stable name to an exact SQL template.
 The checker performs an exact-string match (stripped, normalised whitespace).
 """
 
-DIAGNOSTIC_CATALOG: dict[str, str] = {
+POSTGRES_CATALOG: dict[str, str] = {
     # Active connection count and max_connections
     "active_connections": (
         "SELECT count(*) AS active_connections "
@@ -42,5 +42,31 @@ DIAGNOSTIC_CATALOG: dict[str, str] = {
         "blks_read, blks_hit, tup_returned, tup_fetched "
         "FROM pg_stat_database "
         "WHERE datname = current_database()"
+    ),
+}
+
+MYSQL_CATALOG: dict[str, str] = {
+    "active_connections": (
+        "SELECT COUNT(*) AS active_connections "
+        "FROM information_schema.processlist "
+        "WHERE command != 'Sleep'"
+    ),
+    "max_connections": "SELECT @@max_connections",
+    "waiting_connections": (
+        "SELECT COUNT(*) AS waiting_connections "
+        "FROM information_schema.processlist "
+        "WHERE state LIKE '%lock%' OR state LIKE '%waiting%'"
+    ),
+    "replication_lag": (
+        "SHOW SLAVE STATUS" # Or generic query for replication lag, this might return multiple rows, but we take first. Actually MySQL SHOW SLAVE STATUS returns `Seconds_Behind_Master` which is a named column. The collector handles it.
+    ),
+    "db_size": (
+        "SELECT SUM(data_length + index_length) AS db_size_bytes "
+        "FROM information_schema.tables"
+    ),
+    "slow_query_count": (
+        "SELECT SUM(count_star) AS slow_query_count "
+        "FROM performance_schema.events_statements_summary_by_digest "
+        "WHERE avg_timer_wait > 1000000000000" # > 1 second (picoseconds in performance_schema)
     ),
 }
