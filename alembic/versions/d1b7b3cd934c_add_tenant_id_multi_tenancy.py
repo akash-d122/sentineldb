@@ -36,17 +36,26 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("tenant_id"),
     )
 
-    # Add tenant_id to incidents
+    # 1. Add tenant_id as nullable to existing tables
     op.add_column("incidents", sa.Column("tenant_id", sa.dialects.postgresql.UUID(as_uuid=True), nullable=True))
     op.create_index("ix_incidents_tenant_id", "incidents", ["tenant_id"])
 
-    # Add tenant_id to incident_reports
     op.add_column("incident_reports", sa.Column("tenant_id", sa.dialects.postgresql.UUID(as_uuid=True), nullable=True))
     op.create_index("ix_incident_reports_tenant_id", "incident_reports", ["tenant_id"])
 
-    # Add tenant_id to threshold_configs
     op.add_column("threshold_configs", sa.Column("tenant_id", sa.dialects.postgresql.UUID(as_uuid=True), nullable=True))
     op.create_index("ix_threshold_configs_tenant_id", "threshold_configs", ["tenant_id"])
+
+    # 2. Backfill with a default UUID (00000000-0000-0000-0000-000000000000)
+    default_tenant_id = "00000000-0000-0000-0000-000000000000"
+    op.execute(f"UPDATE incidents SET tenant_id = '{default_tenant_id}' WHERE tenant_id IS NULL")
+    op.execute(f"UPDATE incident_reports SET tenant_id = '{default_tenant_id}' WHERE tenant_id IS NULL")
+    op.execute(f"UPDATE threshold_configs SET tenant_id = '{default_tenant_id}' WHERE tenant_id IS NULL")
+
+    # 3. Alter columns to be NOT NULL
+    op.alter_column("incidents", "tenant_id", nullable=False)
+    op.alter_column("incident_reports", "tenant_id", nullable=False)
+    op.alter_column("threshold_configs", "tenant_id", nullable=False)
 
 
 def downgrade() -> None:

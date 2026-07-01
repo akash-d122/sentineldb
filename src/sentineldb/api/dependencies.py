@@ -25,7 +25,11 @@ security = HTTPBearer()
 JWKS_URL = os.environ.get(
     "SUPABASE_JWKS_URL", "https://your-project-ref.supabase.co/rest/v1/jwks"
 )
-jwks_client = PyJWKClient(JWKS_URL)
+# Protect critical path with a 5-second timeout
+jwks_client = PyJWKClient(JWKS_URL, cache_keys=True, timeout=5)
+
+# Optional audience configuration (e.g. for Supabase typical setup)
+SUPABASE_AUDIENCE = os.environ.get("SUPABASE_AUDIENCE", "authenticated")
 
 
 def verify_jwt(credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)]) -> dict:
@@ -43,12 +47,13 @@ def verify_jwt(credentials: Annotated[HTTPAuthorizationCredentials, Depends(secu
 
     try:
         signing_key = jwks_client.get_signing_key_from_jwt(token)
-        # We allow a broad audience or configure it via env for real production
+        # We enforce audience validation to prevent token reuse
         payload = jwt.decode(
             token,
             signing_key.key,
             algorithms=["RS256"],
-            options={"verify_aud": False},
+            audience=SUPABASE_AUDIENCE,
+            options={"verify_aud": True},
         )
         return payload
     except jwt.PyJWKClientError as e:
