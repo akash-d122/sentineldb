@@ -1,3 +1,4 @@
+import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -46,9 +47,9 @@ export default async function IncidentsPage({ params }: { params: Promise<{ tena
           <h1 className="text-3xl font-bold text-gray-900">Live Incident Feed</h1>
           <p className="text-gray-500 mt-1">Real-time alerts and RCA status.</p>
         </div>
-        <Button asChild>
-          <Link href={`/t/${resolvedParams.tenantId}/settings`}>Manual Trigger</Link>
-        </Button>
+        <Link className={buttonVariants({ variant: "default" })} href={`/t/${resolvedParams.tenantId}/settings`}>
+          Manual Trigger
+        </Link>
       </div>
 
       <Card>
@@ -83,11 +84,9 @@ export default async function IncidentsPage({ params }: { params: Promise<{ tena
                     {new Date(inc.triggered_at).toLocaleTimeString()}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/t/${resolvedParams.tenantId}/incidents/${inc.incident_id}`}>
-                        View Report
-                      </Link>
-                    </Button>
+                    <Link className={buttonVariants({ variant: "ghost", size: "sm" })} href={`/t/${resolvedParams.tenantId}/incidents/${inc.incident_id}`}>
+                      View Report
+                    </Link>
                   </TableCell>
                 </TableRow>
               ))}

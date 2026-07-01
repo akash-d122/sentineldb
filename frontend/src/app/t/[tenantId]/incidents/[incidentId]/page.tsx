@@ -1,3 +1,4 @@
+import { buttonVariants } from "@/components/ui/button";
 import { EvidencePanel } from "@/components/incidents/evidence-panel";
 import { RcaSummary } from "@/components/incidents/rca-summary";
 import { Button } from "@/components/ui/button";
@@ -78,11 +79,11 @@ export default async function IncidentDetailPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`/t/${resolvedParams.tenantId}/incidents`}>
+        <Link className={buttonVariants({ variant: "ghost", size: "icon" })} href={`/t/${resolvedParams.tenantId}/incidents`}>
+          
             <ArrowLeft className="w-5 h-5" />
-          </Link>
-        </Button>
+          
+        </Link>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Incident {resolvedParams.incidentId}</h1>
           <p className="text-gray-500 mt-1">Generated at {new Date(mockReport.generated_at).toLocaleString()}</p>

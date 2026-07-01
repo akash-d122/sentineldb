@@ -9,12 +9,12 @@ import type { EvidenceItem } from "@/types/api";
 export function EvidencePanel({ evidence }: { evidence: EvidenceItem[] }) {
   return (
     <Sheet>
-      <SheetTrigger asChild>
+      <SheetTrigger render={
         <Button variant="outline" className="w-full sm:w-auto">
           <FileBarChart className="w-4 h-4 mr-2" />
           View Raw Evidence
         </Button>
-      </SheetTrigger>
+      } />
       <SheetContent className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader className="mb-6">
           <SheetTitle>Raw Evidence</SheetTitle>
