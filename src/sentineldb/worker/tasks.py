@@ -53,26 +53,28 @@ async def _dispatch_notifications_async(incident_id: str, tenant_id: str | None)
     if tenant_id:
         token = tenant_context.set(uuid.UUID(tenant_id))
 
-    engine = create_async_engine(
-        settings.DATABASE_URL,
-        connect_args={"prepared_statement_cache_size": 0},
-        echo=False,
-    )
-    from sqlalchemy import select
-    from sqlalchemy.ext.asyncio import AsyncSession
-    from sqlalchemy.orm import sessionmaker
-
-    LocalSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore
-
     try:
-        async with LocalSession() as session:
-            stmt = select(IncidentReportORM).where(
-                IncidentReportORM.incident_id == uuid.UUID(incident_id)
-            )
-            result = await session.execute(stmt)
-            db_report = result.scalar_one_or_none()
+        engine = create_async_engine(
+            settings.DATABASE_URL,
+            connect_args={"prepared_statement_cache_size": 0},
+            echo=False,
+        )
+        from sqlalchemy import select
+        from sqlalchemy.ext.asyncio import AsyncSession
+        from sqlalchemy.orm import sessionmaker
+
+        LocalSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore
+
+        try:
+            async with LocalSession() as session:
+                stmt = select(IncidentReportORM).where(
+                    IncidentReportORM.incident_id == uuid.UUID(incident_id)
+                )
+                result = await session.execute(stmt)
+                db_report = result.scalar_one_or_none()
+        finally:
+            await engine.dispose()
     finally:
-        await engine.dispose()
         if token:
             tenant_context.reset(token)
 
@@ -112,7 +114,10 @@ def run_incident_analysis(
     except Exception as e:
         logger.exception("Task failed for incident %s: %s", incident_id, e)
         # Update incident status to failed
-        asyncio.run(_mark_failed(incident_id, tenant_id))
+        try:
+            asyncio.run(_mark_failed(incident_id, tenant_id))
+        except Exception as inner_e:
+            logger.exception("Failed to mark incident %s as failed: %s", incident_id, inner_e)
         raise self.retry(exc=e, countdown=10)
 
 
@@ -193,33 +198,34 @@ async def _analyze(incident_id: str, alert: AlertPayload, tenant_id: str | None)
 
         LocalSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore
 
-        async with LocalSession() as session:
-            # Update incident status
-            incident = await session.get(IncidentORM, uuid.UUID(incident_id))
-            if incident:
-                incident.status = "report_ready"
+        try:
+            async with LocalSession() as session:
+                # Update incident status
+                incident = await session.get(IncidentORM, uuid.UUID(incident_id))
+                if incident:
+                    incident.status = "report_ready"
 
-            # Save report
-            db_report = IncidentReportORM(
-                report_id=report.report_id,
-                incident_id=report.incident_id,
-                rca_strength=report.rca_strength.value,
-                root_cause_summary=report.root_cause_summary,
-                why_most_likely=report.why_most_likely,
-                evidence=[i.model_dump(mode="json") for i in report.evidence],
-                runbook_reference=report.runbook_reference.model_dump(mode="json")
-                if report.runbook_reference
-                else None,
-                safe_next_actions=[a.model_dump(mode="json") for a in report.safe_next_actions],
-                requires_approval=report.requires_approval,
-                missing_evidence=report.missing_evidence,
-                llm_used=report.llm_used,
-                generated_at=report.generated_at,
-            )
-            session.add(db_report)
-            await session.commit()
-
-        await engine.dispose()
+                # Save report
+                db_report = IncidentReportORM(
+                    report_id=report.report_id,
+                    incident_id=report.incident_id,
+                    rca_strength=report.rca_strength.value,
+                    root_cause_summary=report.root_cause_summary,
+                    why_most_likely=report.why_most_likely,
+                    evidence=[i.model_dump(mode="json") for i in report.evidence],
+                    runbook_reference=report.runbook_reference.model_dump(mode="json")
+                    if report.runbook_reference
+                    else None,
+                    safe_next_actions=[a.model_dump(mode="json") for a in report.safe_next_actions],
+                    requires_approval=report.requires_approval,
+                    missing_evidence=report.missing_evidence,
+                    llm_used=report.llm_used,
+                    generated_at=report.generated_at,
+                )
+                session.add(db_report)
+                await session.commit()
+        finally:
+            await engine.dispose()
         return report
 
     finally:
@@ -237,23 +243,25 @@ async def _mark_failed(incident_id: str, tenant_id: str | None) -> None:
     if tenant_id:
         token = tenant_context.set(uuid.UUID(tenant_id))
 
-    engine = create_async_engine(
-        settings.DATABASE_URL,
-        connect_args={"prepared_statement_cache_size": 0},
-        echo=False,
-    )
-    from sqlalchemy.ext.asyncio import AsyncSession
-    from sqlalchemy.orm import sessionmaker
-
-    LocalSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore
-
     try:
-        async with LocalSession() as session:
-            incident = await session.get(IncidentORM, uuid.UUID(incident_id))
-            if incident:
-                incident.status = "failed"
-                await session.commit()
+        engine = create_async_engine(
+            settings.DATABASE_URL,
+            connect_args={"prepared_statement_cache_size": 0},
+            echo=False,
+        )
+        from sqlalchemy.ext.asyncio import AsyncSession
+        from sqlalchemy.orm import sessionmaker
+
+        LocalSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore
+
+        try:
+            async with LocalSession() as session:
+                incident = await session.get(IncidentORM, uuid.UUID(incident_id))
+                if incident:
+                    incident.status = "failed"
+                    await session.commit()
+        finally:
+            await engine.dispose()
     finally:
-        await engine.dispose()
         if token:
             tenant_context.reset(token)

@@ -33,13 +33,8 @@ async def test_prometheus_happy_path() -> None:
         "status": "success",
         "data": {
             "resultType": "vector",
-            "result": [
-                {
-                    "metric": {},
-                    "value": [1700000000.0, "45.5"]
-                }
-            ]
-        }
+            "result": [{"metric": {}, "value": [1700000000.0, "45.5"]}],
+        },
     }
     mock_response.raise_for_status = lambda: None
 
@@ -64,10 +59,7 @@ async def test_prometheus_missing_results_returns_unavailable() -> None:
     mock_response = AsyncMock()
     mock_response.json = lambda: {
         "status": "success",
-        "data": {
-            "resultType": "vector",
-            "result": []
-        }
+        "data": {"resultType": "vector", "result": []},
     }
     mock_response.raise_for_status = lambda: None
 

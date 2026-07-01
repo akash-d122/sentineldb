@@ -70,27 +70,34 @@ async def test_e2e_simulated_pipeline(mock_registry_host) -> None:
     from sqlalchemy.orm import sessionmaker
 
     from sentineldb.db.models import IncidentORM
+    from sentineldb.db.session import tenant_context
+
+    tid = uuid.UUID("00000000-0000-0000-0000-000000000000")
+    token = tenant_context.set(tid)
 
     engine = create_async_engine(settings.DATABASE_URL, echo=False)
     LocalSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore
 
-    async with LocalSession() as session:
-        incident = IncidentORM(
-            incident_id=uuid.UUID(incident_id),
-            instance_id=payload.instance_id,
-            alert_type=payload.alert_type.value,
-            severity=payload.severity.value,
-            metric_value=payload.metric_value,
-            status="queued",
-            raw_payload={},
-            triggered_at=payload.triggered_at,
-        )
-        session.add(incident)
-        await session.commit()
-    await engine.dispose()
+    try:
+        async with LocalSession() as session:
+            incident = IncidentORM(
+                incident_id=uuid.UUID(incident_id),
+                instance_id=payload.instance_id,
+                alert_type=payload.alert_type.value,
+                severity=payload.severity.value,
+                metric_value=payload.metric_value,
+                status="queued",
+                raw_payload={},
+                triggered_at=payload.triggered_at,
+            )
+            session.add(incident)
+            await session.commit()
+    finally:
+        await engine.dispose()
+        tenant_context.reset(token)
 
     # 2. Run analysis (this calls the asyncpg collector, analyzer, renderer, and persists to DB)
-    report = await _analyze(incident_id, payload)
+    report = await _analyze(incident_id, payload, str(tid))
 
     # 3. Verify report structure
     assert report.incident_id == incident_id
@@ -110,17 +117,20 @@ async def test_e2e_simulated_pipeline(mock_registry_host) -> None:
 
     LocalSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore
 
-    async with LocalSession() as session:
-        stmt = select(IncidentReportORM).where(
-            IncidentReportORM.incident_id == uuid.UUID(incident_id)
-        )  # noqa: E501
-        result = await session.execute(stmt)
-        db_report = result.scalar_one_or_none()
+    token2 = tenant_context.set(tid)
+    try:
+        async with LocalSession() as session:
+            stmt = select(IncidentReportORM).where(
+                IncidentReportORM.incident_id == uuid.UUID(incident_id)
+            )  # noqa: E501
+            result = await session.execute(stmt)
+            db_report = result.scalar_one_or_none()
 
-        assert db_report is not None
-        assert db_report.root_cause_summary == report.root_cause_summary
-
-    await engine.dispose()
+            assert db_report is not None
+            assert db_report.root_cause_summary == report.root_cause_summary
+    finally:
+        await engine.dispose()
+        tenant_context.reset(token2)
 
 
 @integration
@@ -180,20 +190,27 @@ async def test_e2e_simulated_http() -> None:
     from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy.orm import sessionmaker
 
+    from sentineldb.db.session import tenant_context
+
+    tid = uuid.UUID("00000000-0000-0000-0000-000000000000")
+    token = tenant_context.set(tid)
+
     LocalSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore
 
-    async with LocalSession() as session:
-        for _ in range(10):  # Wait up to 10 seconds for Celery to finish
-            stmt = select(IncidentReportORM).where(
-                IncidentReportORM.incident_id == uuid.UUID(incident_id)
-            )  # noqa: E501
-            result = await session.execute(stmt)
-            db_report = result.scalar_one_or_none()
-            if db_report is not None:
-                break
-            await asyncio.sleep(1)
+    try:
+        async with LocalSession() as session:
+            for _ in range(10):  # Wait up to 10 seconds for Celery to finish
+                stmt = select(IncidentReportORM).where(
+                    IncidentReportORM.incident_id == uuid.UUID(incident_id)
+                )  # noqa: E501
+                result = await session.execute(stmt)
+                db_report = result.scalar_one_or_none()
+                if db_report is not None:
+                    break
+                await asyncio.sleep(1)
 
-        assert db_report is not None, "Report was never persisted by Celery worker"
-        assert db_report.rca_strength in ["High", "Medium", "Low"]
-
-    await engine.dispose()
+            assert db_report is not None, "Report was never persisted by Celery worker"
+            assert db_report.rca_strength in ["High", "Medium", "Low"]
+    finally:
+        await engine.dispose()
+        tenant_context.reset(token)

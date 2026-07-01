@@ -32,6 +32,7 @@ async def create_and_analyze_incident(
     payload_dict = payload.model_dump(mode="json")
 
     from sentineldb.db.session import tenant_context
+
     tid = tenant_context.get()
     tenant_id_str = str(tid) if tid else None
 
