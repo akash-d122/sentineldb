@@ -36,9 +36,10 @@ payload = {
     "instance_id": "demo-instance",
     "metric_name": "cloudwatch_cpu",
     "warning_threshold": 75.5,
-    "critical_threshold": 90.0
+    "critical_threshold": 90.0,
 }
-res = client.post("/api/v1/config/thresholds", json=payload, headers={"Authorization": "Bearer dev-token"})
+res = client.post(
+    "/api/v1/config/thresholds", json=payload, headers={"Authorization": "Bearer dev-token"}
+)
 print(f"Status: {res.status_code} (Expected 201)")
 print(f"Response: {res.json()}\n")
-

@@ -22,19 +22,21 @@ router = APIRouter(
     dependencies=[Depends(verify_jwt), Depends(set_tenant_context)],
 )
 
+
 class ThresholdConfigSchema(BaseModel):
     instance_id: str
     metric_name: str
     warning_threshold: float
     critical_threshold: float
 
+
 class ThresholdConfigResponse(ThresholdConfigSchema):
     id: uuid.UUID
 
+
 @router.get("", response_model=list[ThresholdConfigResponse])
 async def list_thresholds(
-    instance_id: str | None = None,
-    session: AsyncSession = Depends(get_session)
+    instance_id: str | None = None, session: AsyncSession = Depends(get_session)
 ) -> Any:
     stmt = select(ThresholdConfigORM)
     if instance_id:
@@ -43,14 +45,14 @@ async def list_thresholds(
     result = await session.execute(stmt)
     return result.scalars().all()
 
+
 @router.post("", response_model=ThresholdConfigResponse, status_code=status.HTTP_201_CREATED)
 async def create_or_update_threshold(
-    payload: ThresholdConfigSchema,
-    session: AsyncSession = Depends(get_session)
+    payload: ThresholdConfigSchema, session: AsyncSession = Depends(get_session)
 ) -> Any:
     stmt = select(ThresholdConfigORM).where(
         ThresholdConfigORM.instance_id == payload.instance_id,
-        ThresholdConfigORM.metric_name == payload.metric_name
+        ThresholdConfigORM.metric_name == payload.metric_name,
     )
     result = await session.execute(stmt)
     existing = result.scalars().first()
@@ -74,10 +76,10 @@ async def create_or_update_threshold(
     await session.refresh(new_config)
     return new_config
 
+
 @router.delete("/{config_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_threshold(
-    config_id: uuid.UUID,
-    session: AsyncSession = Depends(get_session)
+    config_id: uuid.UUID, session: AsyncSession = Depends(get_session)
 ) -> None:
     config = await session.get(ThresholdConfigORM, config_id)
     if not config:

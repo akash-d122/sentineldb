@@ -1,6 +1,7 @@
 """
 Mock Billing service (Stripe Mock).
 """
+
 from __future__ import annotations
 
 import logging
@@ -8,6 +9,7 @@ import uuid
 from typing import Literal
 
 logger = logging.getLogger(__name__)
+
 
 class StripeMockService:
     @staticmethod
@@ -20,7 +22,9 @@ class StripeMockService:
         return f"cus_mock_{tenant_id.hex[:10]}"
 
     @staticmethod
-    def check_subscription_status(stripe_customer_id: str | None) -> Literal["active", "past_due", "canceled", "incomplete"]:
+    def check_subscription_status(
+        stripe_customer_id: str | None,
+    ) -> Literal["active", "past_due", "canceled", "incomplete"]:
         """
         Mock checking subscription status.
         In reality, this would query the Stripe API.
@@ -29,5 +33,6 @@ class StripeMockService:
             return "incomplete"
         # For mock purposes, just return active
         return "active"
+
 
 billing_service = StripeMockService()

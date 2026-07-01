@@ -22,9 +22,7 @@ logger = logging.getLogger(__name__)
 security = HTTPBearer()
 
 # Default to a generic placeholder JWKS URL if not provided.
-JWKS_URL = os.environ.get(
-    "SUPABASE_JWKS_URL", "https://your-project-ref.supabase.co/rest/v1/jwks"
-)
+JWKS_URL = os.environ.get("SUPABASE_JWKS_URL", "https://your-project-ref.supabase.co/rest/v1/jwks")
 # Protect critical path with a 5-second timeout
 jwks_client = PyJWKClient(JWKS_URL, cache_keys=True, timeout=5)
 
@@ -108,4 +106,3 @@ async def set_tenant_context(
         yield tenant_id
     finally:
         tenant_context.reset(token)
-

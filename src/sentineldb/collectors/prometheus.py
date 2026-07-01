@@ -22,6 +22,7 @@ _METRICS = {
     "prom_7d_avg_qps": 'avg_over_time(mysql_global_status_questions{instance="{instance}"}[7d])',
 }
 
+
 def _unavailable(label: str) -> EvidenceItem:
     return EvidenceItem(
         source="prometheus",
@@ -30,6 +31,7 @@ def _unavailable(label: str) -> EvidenceItem:
         status=EvidenceStatus.UNAVAILABLE,
         display_text=f"{label}: UNAVAILABLE",
     )
+
 
 class PrometheusCollector:
     """Evidence collector for Prometheus metrics (e.g., historical baselines)."""
@@ -62,7 +64,9 @@ class PrometheusCollector:
             items = [_unavailable(label) for label in _METRICS]
             return EvidenceBundle(instance_id=self._instance.instance_id, items=items)
 
-    async def _fetch_metric(self, client: httpx.AsyncClient, query_template: str, label: str) -> EvidenceItem:
+    async def _fetch_metric(
+        self, client: httpx.AsyncClient, query_template: str, label: str
+    ) -> EvidenceItem:
         """Fetch a single metric statistic via PromQL."""
         query = query_template.replace("{instance}", self._prom_instance)
         try:

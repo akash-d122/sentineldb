@@ -11,7 +11,10 @@ from sentineldb.api.main import app
 
 @pytest.fixture
 def mock_session() -> AsyncMock:
+    from unittest.mock import MagicMock
+
     session = AsyncMock()
+    session.add = MagicMock()
     return session
 
 
@@ -22,6 +25,7 @@ def client(mock_session: AsyncMock):
     from sentineldb.api.dependencies import verify_jwt
     from sentineldb.db.session import get_session
 
+    original_overrides = app.dependency_overrides.copy()
     app.dependency_overrides[get_session] = lambda: mock_session
     app.dependency_overrides[verify_jwt] = lambda: {
         "sub": "test-user-id",
@@ -31,12 +35,13 @@ def client(mock_session: AsyncMock):
     with TestClient(app) as c:
         yield c
 
-    app.dependency_overrides.clear()
+    app.dependency_overrides = original_overrides
 
 
 @pytest.mark.asyncio
 async def test_onboard_tenant(client, mock_session: AsyncMock) -> None:
     from unittest.mock import MagicMock
+
     # Setup mock to return None, meaning tenant not found
     mock_result = MagicMock()
     mock_result.scalars.return_value.first.return_value = None
@@ -61,6 +66,7 @@ async def test_onboard_tenant(client, mock_session: AsyncMock) -> None:
 @pytest.mark.asyncio
 async def test_get_billing_status(client, mock_session: AsyncMock) -> None:
     from unittest.mock import MagicMock
+
     # Setup mock to return a tenant
     mock_result = MagicMock()
 

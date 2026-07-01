@@ -50,6 +50,9 @@ async def verify_webhook_signature(
         raise HTTPException(status_code=401, detail="Invalid webhook signature")
 
 
+import uuid
+
+from sentineldb.db.session import tenant_context
 from sentineldb.services.incident import create_and_analyze_incident
 
 
@@ -63,4 +66,10 @@ async def ingest_alert(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     """Ingest a new alert, persist it, and dispatch background analysis."""
-    return await create_and_analyze_incident(payload, session)
+    # Set the tenant context from the payload, fallback to the default migration tenant
+    tid = payload.tenant_id or uuid.UUID("00000000-0000-0000-0000-000000000000")
+    token = tenant_context.set(tid)
+    try:
+        return await create_and_analyze_incident(payload, session)
+    finally:
+        tenant_context.reset(token)

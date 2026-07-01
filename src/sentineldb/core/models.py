@@ -21,6 +21,7 @@ class AlertPayload(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
+    tenant_id: uuid.UUID | None = None
     instance_id: str
     alert_type: AlertType
     severity: Severity
