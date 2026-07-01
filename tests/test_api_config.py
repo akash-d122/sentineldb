@@ -17,7 +17,7 @@ from sentineldb.db.models import ThresholdConfigORM
 from sentineldb.db.session import get_session
 
 # Override the auth dependency for all API tests
-app.dependency_overrides[verify_jwt] = lambda: "test-user-id"
+app.dependency_overrides[verify_jwt] = lambda: {"sub": "test-user-id", "tenant_id": "00000000-0000-0000-0000-000000000000"}
 
 client = TestClient(app)
 
