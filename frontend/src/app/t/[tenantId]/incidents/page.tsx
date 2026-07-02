@@ -9,15 +9,15 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v
 
 async function getIncidents() {
   const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (!user) {
     return { incidents: [], error: "Unauthorized" };
   }
 
   try {
     const res = await fetch(`${API_BASE}/incidents`, {
-      headers: { Authorization: `Bearer ${session.access_token}` },
+      headers: { Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` },
       cache: "no-store", // Fix 1: Prevent cross-tenant cache leakage
     });
 

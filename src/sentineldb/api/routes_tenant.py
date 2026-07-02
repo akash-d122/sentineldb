@@ -5,7 +5,7 @@ FastAPI router for tenant onboarding and billing endpoints.
 from __future__ import annotations
 
 import uuid
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -26,7 +26,7 @@ router = APIRouter(
 
 class OnboardingRequest(BaseModel):
     name: str
-    plan_tier: str = "free"
+    plan_tier: Literal["free", "pro", "enterprise"] = "free"
 
 
 class OnboardingResponse(BaseModel):

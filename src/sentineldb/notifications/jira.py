@@ -19,7 +19,7 @@ class JiraHandler(NotificationHandler):
     def __init__(self) -> None:
         self.webhook_url = os.environ.get("JIRA_WEBHOOK_URL")
 
-    def notify(self, report: IncidentReport) -> None:
+    async def notify(self, report: IncidentReport) -> None:
         """Create a Jira ticket via webhook or REST API."""
         if not self.webhook_url:
             logger.debug("JIRA_WEBHOOK_URL not set; skipping Jira notification.")
@@ -35,7 +35,8 @@ class JiraHandler(NotificationHandler):
         }
 
         try:
-            response = httpx.post(self.webhook_url, json=payload, timeout=5.0)
+            async with httpx.AsyncClient() as client:
+                response = await client.post(self.webhook_url, json=payload, timeout=5.0)
             response.raise_for_status()
             logger.info("Successfully created Jira ticket for incident %s", report.incident_id)
         except Exception as e:

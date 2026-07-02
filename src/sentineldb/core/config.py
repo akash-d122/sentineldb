@@ -19,7 +19,9 @@ class Settings(BaseSettings):
     ENV: Literal["development", "production", "testing"] = "development"
 
     # Database
+    POSTGRES_USER: str = "sentinel_app"
     POSTGRES_PASSWORD: str = "change_me_postgres"
+    POSTGRES_DB: str = "sentineldb"
     DB_HOST: str = "localhost"
     DB_PORT: int = 5432
 
@@ -40,7 +42,7 @@ class Settings(BaseSettings):
 
     @property
     def DATABASE_URL(self) -> str:
-        return f"postgresql+asyncpg://sentinel_app:{self.POSTGRES_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/sentineldb"
+        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.POSTGRES_DB}"
 
     @property
     def REDIS_URL(self) -> str:

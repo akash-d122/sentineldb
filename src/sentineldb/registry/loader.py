@@ -20,9 +20,13 @@ class InstanceRegistry:
 
     def __init__(self, path: str | Path = "instances.yaml") -> None:
         self._path = Path(path)
-        self._registry: dict[str, InstanceConfig] = self._load()
+        self._registry: dict[str, InstanceConfig] = {}
+        self._loaded = False
+
 
     def _load(self) -> dict[str, InstanceConfig]:
+        if not self._path.exists():
+            return {}
         with self._path.open("r", encoding="utf-8") as fh:
             data = yaml.safe_load(fh)
         if not isinstance(data, dict):
@@ -33,6 +37,9 @@ class InstanceRegistry:
         }
 
     def resolve(self, instance_id: str) -> InstanceConfig:
+        if not self._loaded:
+            self._registry = self._load()
+            self._loaded = True
         try:
             return self._registry[instance_id]
         except KeyError:

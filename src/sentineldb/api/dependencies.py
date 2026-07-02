@@ -6,14 +6,15 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 import uuid
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
+import httpx
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jwt import PyJWKClient
 
 from sentineldb.db.session import tenant_context
 
@@ -23,16 +24,51 @@ security = HTTPBearer()
 
 # Default to a generic placeholder JWKS URL if not provided.
 JWKS_URL = os.environ.get("SUPABASE_JWKS_URL", "https://your-project-ref.supabase.co/rest/v1/jwks")
-# Protect critical path with a 5-second timeout
-jwks_client = PyJWKClient(JWKS_URL, cache_keys=True, timeout=5)
 
 # Optional audience configuration (e.g. for Supabase typical setup)
 SUPABASE_AUDIENCE = os.environ.get("SUPABASE_AUDIENCE", "authenticated")
 
+# Async JWKS caching
+_jwks_cache = None
+_jwks_cache_time = 0
+JWKS_CACHE_TTL = 3600
 
-def verify_jwt(credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)]) -> dict:
+async def get_jwks(force_refresh: bool = False) -> dict:
+    global _jwks_cache, _jwks_cache_time
+    if not force_refresh and _jwks_cache and time.time() - _jwks_cache_time < JWKS_CACHE_TTL:
+        return _jwks_cache
+    
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        resp = await client.get(JWKS_URL)
+        resp.raise_for_status()
+        _jwks_cache = resp.json()
+        _jwks_cache_time = time.time()
+        return _jwks_cache
+
+async def get_signing_key(token: str):
+    unverified_header = jwt.get_unverified_header(token)
+    kid = unverified_header.get("kid")
+    if not kid:
+        raise jwt.InvalidTokenError("Missing kid in token header")
+        
+    jwks = await get_jwks()
+    
+    for key in jwks.get("keys", []):
+        if key.get("kid") == kid:
+            return jwt.algorithms.RSAAlgorithm.from_jwk(key)
+            
+    # Key not found, could be rotated. Force refresh and try again.
+    jwks = await get_jwks(force_refresh=True)
+    for key in jwks.get("keys", []):
+        if key.get("kid") == kid:
+            return jwt.algorithms.RSAAlgorithm.from_jwk(key)
+            
+    raise jwt.InvalidTokenError(f"Unable to find appropriate key for kid: {kid}")
+
+
+async def verify_jwt(credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)]) -> dict:
     """
-    Verify the JWT token from Supabase using JWKS.
+    Verify the JWT token from Supabase using JWKS asynchronously.
     In local development, if ENV != production, we might allow a fallback.
     Returns the parsed payload.
     """
@@ -44,17 +80,17 @@ def verify_jwt(credentials: Annotated[HTTPAuthorizationCredentials, Depends(secu
         return {"sub": "dev-user-id", "tenant_id": "00000000-0000-0000-0000-000000000000"}
 
     try:
-        signing_key = jwks_client.get_signing_key_from_jwt(token)
+        signing_key = await get_signing_key(token)
         # We enforce audience validation to prevent token reuse
         payload = jwt.decode(
             token,
-            signing_key.key,
+            signing_key,
             algorithms=["RS256"],
             audience=SUPABASE_AUDIENCE,
             options={"verify_aud": True},
         )
         return payload
-    except jwt.PyJWKClientError as e:
+    except httpx.HTTPError as e:
         logger.error("Failed to fetch JWKS: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

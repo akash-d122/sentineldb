@@ -86,7 +86,7 @@ async def _dispatch_notifications_async(incident_id: str, tenant_id: str | None)
     from sentineldb.core.models import IncidentReport
 
     report = IncidentReport.model_validate(db_report, from_attributes=True)
-    _dispatcher.dispatch(report)
+    await _dispatcher.dispatch(report)
 
 
 @celery_app.task(bind=True, max_retries=3)
