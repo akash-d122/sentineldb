@@ -33,11 +33,12 @@ _jwks_cache = None
 _jwks_cache_time = 0
 JWKS_CACHE_TTL = 3600
 
+
 async def get_jwks(force_refresh: bool = False) -> dict:
     global _jwks_cache, _jwks_cache_time
     if not force_refresh and _jwks_cache and time.time() - _jwks_cache_time < JWKS_CACHE_TTL:
         return _jwks_cache
-    
+
     async with httpx.AsyncClient(timeout=5.0) as client:
         resp = await client.get(JWKS_URL)
         resp.raise_for_status()
@@ -45,28 +46,31 @@ async def get_jwks(force_refresh: bool = False) -> dict:
         _jwks_cache_time = time.time()
         return _jwks_cache
 
+
 async def get_signing_key(token: str):
     unverified_header = jwt.get_unverified_header(token)
     kid = unverified_header.get("kid")
     if not kid:
         raise jwt.InvalidTokenError("Missing kid in token header")
-        
+
     jwks = await get_jwks()
-    
+
     for key in jwks.get("keys", []):
         if key.get("kid") == kid:
             return jwt.algorithms.RSAAlgorithm.from_jwk(key)
-            
+
     # Key not found, could be rotated. Force refresh and try again.
     jwks = await get_jwks(force_refresh=True)
     for key in jwks.get("keys", []):
         if key.get("kid") == kid:
             return jwt.algorithms.RSAAlgorithm.from_jwk(key)
-            
+
     raise jwt.InvalidTokenError(f"Unable to find appropriate key for kid: {kid}")
 
 
-async def verify_jwt(credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)]) -> dict:
+async def verify_jwt(
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+) -> dict:
     """
     Verify the JWT token from Supabase using JWKS asynchronously.
     In local development, if ENV != production, we might allow a fallback.

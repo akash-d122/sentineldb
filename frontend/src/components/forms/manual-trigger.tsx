@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { triggerManualAnalysis } from "@/app/actions";
 
 export function ManualTriggerForm({ tenantId }: { tenantId: string }) {
   const [loading, setLoading] = useState(false);
@@ -13,14 +14,21 @@ export function ManualTriggerForm({ tenantId }: { tenantId: string }) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    
-    // Simulate API call to FastAPI manual trigger endpoint
-    setTimeout(() => {
-      setLoading(false);
+
+    try {
+      const formData = new FormData(e.currentTarget);
+      await triggerManualAnalysis(formData);
       toast.success("Analysis triggered successfully", {
         description: "The background worker is now gathering evidence."
       });
-    }, 800);
+      // Optionally reset form
+      e.currentTarget.reset();
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Failed to trigger analysis");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -33,11 +41,11 @@ export function ManualTriggerForm({ tenantId }: { tenantId: string }) {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Instance ID</Label>
-            <Input required placeholder="e.g. db-prod-01" />
+            <Input required name="instance_id" placeholder="e.g. db-prod-01" />
           </div>
           <div className="space-y-2">
             <Label>Alert Focus</Label>
-            <Select required defaultValue="high_cpu">
+            <Select required name="alert_type" defaultValue="high_cpu">
               <SelectTrigger>
                 <SelectValue placeholder="Select alert type" />
               </SelectTrigger>
@@ -52,11 +60,11 @@ export function ManualTriggerForm({ tenantId }: { tenantId: string }) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Time Window (Minutes)</Label>
-              <Input type="number" required defaultValue="30" />
+              <Input type="number" name="time_window" required defaultValue="30" />
             </div>
             <div className="space-y-2">
               <Label>Severity</Label>
-              <Select required defaultValue="P2">
+              <Select required name="severity" defaultValue="P2">
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

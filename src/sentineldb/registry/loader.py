@@ -23,7 +23,6 @@ class InstanceRegistry:
         self._registry: dict[str, InstanceConfig] = {}
         self._loaded = False
 
-
     def _load(self) -> dict[str, InstanceConfig]:
         if not self._path.exists():
             return {}
@@ -44,3 +43,21 @@ class InstanceRegistry:
             return self._registry[instance_id]
         except KeyError:
             raise InstanceNotRegistered(instance_id)
+
+    def register(self, instance_id: str, config: dict) -> None:
+        if not self._loaded:
+            self._registry = self._load()
+            self._loaded = True
+
+        if self._path.exists():
+            with self._path.open("r", encoding="utf-8") as fh:
+                data = yaml.safe_load(fh) or {}
+        else:
+            data = {}
+
+        data[instance_id] = config
+
+        with self._path.open("w", encoding="utf-8") as fh:
+            yaml.safe_dump(data, fh)
+
+        self._registry[instance_id] = InstanceConfig(instance_id=instance_id, **config)

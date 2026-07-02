@@ -37,6 +37,20 @@ class OnboardingResponse(BaseModel):
     plan_tier: str
 
 
+class RegisterInstanceRequest(BaseModel):
+    engine: str
+    host: str
+    port: int
+    database: str
+    username: str
+    password: str
+
+
+class RegisterInstanceResponse(BaseModel):
+    instance_id: str
+    status: str
+
+
 class BillingStatusResponse(BaseModel):
     tenant_id: uuid.UUID
     billing_status: str
@@ -112,3 +126,38 @@ async def get_billing_status(session: AsyncSession = Depends(get_session)) -> An
         await session.refresh(tenant)
 
     return tenant
+
+
+from sentineldb.registry.loader import InstanceRegistry
+
+_registry = InstanceRegistry()
+
+
+@router.post(
+    "/instances", response_model=RegisterInstanceResponse, status_code=status.HTTP_201_CREATED
+)
+async def register_instance(
+    req: RegisterInstanceRequest, session: AsyncSession = Depends(get_session)
+) -> Any:
+    tenant_id = tenant_context.get()
+    if not tenant_id:
+        raise HTTPException(status_code=500, detail="Missing tenant context")
+
+    # Generate a unique instance ID for this tenant's database
+    instance_id = f"db_{uuid.uuid4().hex[:8]}"
+
+    # In a real system, the password would be encrypted and saved in a Secret Manager.
+    # For V1A local execution, we pass it as the credential_ref directly.
+    _registry.register(
+        instance_id,
+        {
+            "engine": req.engine,
+            "host": req.host,
+            "port": req.port,
+            "database": req.database,
+            "username": req.username,
+            "credential_ref": req.password,
+        },
+    )
+
+    return {"instance_id": instance_id, "status": "registered"}

@@ -40,7 +40,9 @@ class FreshdeskHandler(NotificationHandler):
 
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.post(url, json=payload, auth=(self.api_key, "X"), timeout=5.0)
+                response = await client.post(
+                    url, json=payload, auth=(self.api_key, "X"), timeout=5.0
+                )
             response.raise_for_status()
             logger.info("Successfully created Freshdesk ticket for incident %s", report.incident_id)
         except Exception as e:

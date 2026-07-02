@@ -67,7 +67,7 @@ def test_malformed_yaml_raises_at_load_time(tmp_path: Path) -> None:
     bad_yaml = tmp_path / "instances.yaml"
     bad_yaml.write_text("- this is a list not a mapping\n", encoding="utf-8")
     with pytest.raises(ValueError, match="mapping"):
-        InstanceRegistry(bad_yaml)
+        InstanceRegistry(bad_yaml).resolve("any")
 
 
 def test_instance_config_cloud_none_valid(tmp_path: Path) -> None:

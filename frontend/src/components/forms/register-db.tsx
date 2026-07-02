@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
+import { registerDatabase } from "@/app/actions";
+import { toast } from "sonner";
 
 export function RegisterDbForm({ tenantId }: { tenantId: string }) {
   const [loading, setLoading] = useState(false);
@@ -14,12 +16,17 @@ export function RegisterDbForm({ tenantId }: { tenantId: string }) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    // In a real app, this would hit the FastAPI registry endpoint
-    // using Server Actions or an API route.
-    setTimeout(() => {
-      setLoading(false);
+
+    try {
+      const formData = new FormData(e.currentTarget);
+      await registerDatabase(formData);
+      toast.success("Database connected successfully");
       router.push(`/t/${tenantId}/incidents`);
-    }, 1000);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Failed to connect database");
+      setLoading(false);
+    }
   };
 
   return (
@@ -32,7 +39,7 @@ export function RegisterDbForm({ tenantId }: { tenantId: string }) {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Engine</Label>
-            <Select required defaultValue="postgresql">
+            <Select required name="engine" defaultValue="postgresql">
               <SelectTrigger>
                 <SelectValue placeholder="Select engine" />
               </SelectTrigger>
@@ -45,24 +52,24 @@ export function RegisterDbForm({ tenantId }: { tenantId: string }) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="host">Host</Label>
-              <Input id="host" required placeholder="db.example.com" />
+              <Input id="host" name="host" required placeholder="db.example.com" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="port">Port</Label>
-              <Input id="port" required placeholder="5432" />
+              <Input id="port" name="port" required placeholder="5432" />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="database">Database Name</Label>
-            <Input id="database" required placeholder="postgres" />
+            <Input id="database" name="database" required placeholder="postgres" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="username">Read-only Username</Label>
-            <Input id="username" required placeholder="sentinel_ro" />
+            <Input id="username" name="username" required placeholder="sentinel_ro" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" required type="password" />
+            <Input id="password" name="password" required type="password" />
           </div>
         </CardContent>
         <CardFooter>

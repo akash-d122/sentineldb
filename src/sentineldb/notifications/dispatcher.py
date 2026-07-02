@@ -27,9 +27,11 @@ class NotificationDispatcher:
         """Send notifications using all handlers. Catch and log individual failures."""
         logger.info("Dispatching notifications for incident %s", report.incident_id)
         import asyncio
+
         async def _safe_notify(h):
             try:
                 await h.notify(report)
             except Exception as e:
                 logger.error("Notification handler %s failed: %s", h.__class__.__name__, e)
+
         await asyncio.gather(*(_safe_notify(h) for h in self.handlers))
