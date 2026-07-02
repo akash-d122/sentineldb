@@ -50,8 +50,6 @@ async def verify_webhook_signature(
         raise HTTPException(status_code=401, detail="Invalid webhook signature")
 
 
-import uuid
-
 from sentineldb.services.incident import create_and_analyze_incident
 
 

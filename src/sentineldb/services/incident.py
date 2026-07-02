@@ -31,7 +31,6 @@ async def create_and_analyze_incident(
     incident_id_str = str(incident.incident_id)
     payload_dict = payload.model_dump(mode="json")
 
-
     run_incident_analysis.delay(incident_id_str, payload_dict)
 
     return {

@@ -80,9 +80,7 @@ async def _dispatch_notifications_async(incident_id: str) -> None:
 
 
 @celery_app.task(bind=True, max_retries=3)
-def run_incident_analysis(
-    self: Any, incident_id: str, alert_payload_dict: dict[str, Any]
-) -> str:
+def run_incident_analysis(self: Any, incident_id: str, alert_payload_dict: dict[str, Any]) -> str:
     """
     Run the complete incident analysis pipeline.
 
@@ -210,7 +208,6 @@ async def _analyze(incident_id: str, alert: AlertPayload) -> IncidentReport:
     finally:
         await engine.dispose()
     return report
-
 
 
 async def _mark_failed(incident_id: str) -> None:

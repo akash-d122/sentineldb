@@ -15,7 +15,6 @@ from sentineldb.api.main import app
 from sentineldb.db.models import ThresholdConfigORM
 from sentineldb.db.session import get_session
 
-
 client = TestClient(app)
 
 

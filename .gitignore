@@ -36,3 +36,11 @@ logs/
 CLAUDE.local.md
 .docs
 AGENTS.local.md
+# Repomix
+repomix-output.*
+
+# Node
+node_modules/
+dist/
+
+.next/

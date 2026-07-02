@@ -12,7 +12,6 @@ from sentineldb.core.enums import IncidentStatus
 from sentineldb.db.models import IncidentORM, IncidentReportORM
 from sentineldb.db.session import get_session
 
-
 client = TestClient(app)
 
 
