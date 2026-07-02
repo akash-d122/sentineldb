@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
+import { IncidentFeedLive } from "@/components/incident-feed-live";
 import { createClient } from "@/utils/supabase/server";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
@@ -84,74 +85,10 @@ export default async function IncidentsPage({ params }: { params: Promise<{ tena
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : incidents.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-gray-400">
-                    <div className="flex flex-col items-center justify-center space-y-1">
-                      <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center mb-2">
-                        <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <p>No active incidents.</p>
-                      <p className="text-xs">Your databases are healthy.</p>
-                    </div>
-                  </TableCell>
-                </TableRow>
               ) : (
-                incidents.map((inc: Record<string, unknown>) => {
-                  const isReady = inc.status === 'report_ready';
-                  const isFailed = inc.status === 'failed';
-                  const statusColor = isReady ? 'bg-emerald-500' : isFailed ? 'bg-red-500' : 'bg-blue-500 animate-pulse';
-                  const statusText = inc.status ? inc.status.replace(/_/g, ' ') : 'unknown';
-
-                  let formattedTime = 'Invalid date';
-                  if (inc.triggered_at) {
-                    const d = new Date(inc.triggered_at);
-                    if (!isNaN(d.getTime())) {
-                      // Fix 3 & 7: Format consistently using UTC on the server to prevent hydration issues
-                      formattedTime = d.toISOString().substring(11, 16);
-                    }
-                  }
-
-                  return (
-                    <TableRow key={inc.incident_id} className="group transition-colors">
-                      <TableCell className="font-medium text-gray-900">{inc.instance_id}</TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100/50 text-gray-600 text-xs font-mono">
-                          {inc.alert_type}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={`
-                          font-medium px-2 py-0.5 border-transparent
-                          ${inc.severity === 'P1' ? 'bg-red-50 text-red-700' : 'bg-orange-50 text-orange-700'}
-                        `}>
-                          {inc.severity}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className={`w-2 h-2 rounded-full ${statusColor}`} />
-                          <span className="text-sm text-gray-700 capitalize">{statusText}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-gray-500 text-sm">
-                        {formattedTime}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Link
-                          className={buttonVariants({ variant: "ghost", size: "sm", className: "opacity-0 group-hover:opacity-100 transition-opacity text-blue-600 hover:text-blue-700 hover:bg-blue-50" })}
-                          href={`/t/${resolvedParams.tenantId}/incidents/${inc.incident_id}`}
-                        >
-                          View Report &rarr;
-                        </Link>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                <IncidentFeedLive tenantId={resolvedParams.tenantId} initialIncidents={incidents} />
               )}
-            </TableBody>
+</TableBody>
           </Table>
         </CardContent>
       </Card>

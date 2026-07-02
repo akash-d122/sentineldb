@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import time
 from datetime import UTC, datetime, timedelta
 
 import boto3
@@ -28,6 +29,11 @@ _METRICS = {
     "cloudwatch_free_storage_space": "FreeStorageSpace",
     "cloudwatch_aurora_replica_lag": "AuroraReplicaLag",
 }
+
+
+# R5: 60s TTL Cache to prevent aggressive API spikes during active RCA viewing
+_cache: dict[str, tuple[float, EvidenceItem]] = {}
+CACHE_TTL = 60.0
 
 
 class CloudWatchCollector:
@@ -63,7 +69,13 @@ class CloudWatchCollector:
 
     def _fetch_metric(self, metric_name: str, label: str) -> EvidenceItem:
         """Fetch a single metric statistic from CloudWatch."""
+        cache_key = f"{self._db_identifier}:{metric_name}"
+        cached = _cache.get(cache_key)
+        if cached and time.time() - cached[0] < CACHE_TTL:
+            return cached[1]
+
         region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+
         client = boto3.client("cloudwatch", region_name=region)
 
         now = datetime.now(UTC)
@@ -87,7 +99,7 @@ class CloudWatchCollector:
             latest = sorted(datapoints, key=lambda x: x["Timestamp"], reverse=True)[0]
             value = latest["Average"]
 
-            return EvidenceItem(
+            item = EvidenceItem(
                 source="cloudwatch",
                 label=label,
                 value=value,
@@ -95,5 +107,7 @@ class CloudWatchCollector:
                 status=EvidenceStatus.OK,
                 display_text=f"{label}: {value:.2f}",
             )
+            _cache[cache_key] = (time.time(), item)
+            return item
         except Exception:
             return EvidenceItem.unavailable("cloudwatch", label)

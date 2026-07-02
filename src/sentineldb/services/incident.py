@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 
+import redis.asyncio as redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sentineldb.core.config import settings
 from sentineldb.core.models import AlertPayload
 from sentineldb.db.models import IncidentORM
 from sentineldb.worker.tasks import run_incident_analysis
@@ -37,6 +40,17 @@ async def create_and_analyze_incident(
     tenant_id_str = str(tid) if tid else None
 
     run_incident_analysis.delay(incident_id_str, payload_dict, tenant_id_str)
+
+    if tenant_id_str:
+        try:
+            r = redis.from_url(settings.REDIS_URL)
+            event = {"incident_id": incident_id_str, "status": "queued", "tenant_id": tenant_id_str}
+            await r.publish(f"incident_updates:{tenant_id_str}", json.dumps(event))
+            await r.aclose()
+        except Exception as e:
+            import logging
+
+            logging.getLogger(__name__).warning(f"Failed to publish to Redis: {e}")
 
     return {
         "status": "accepted",

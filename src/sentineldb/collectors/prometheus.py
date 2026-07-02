@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import time
 from datetime import UTC, datetime
 
 import httpx
@@ -31,6 +32,11 @@ def _unavailable(label: str) -> EvidenceItem:
         status=EvidenceStatus.UNAVAILABLE,
         display_text=f"{label}: UNAVAILABLE",
     )
+
+
+# R5: 60s TTL Cache to prevent aggressive API spikes during active RCA viewing
+_cache: dict[str, tuple[float, EvidenceItem]] = {}
+CACHE_TTL = 60.0
 
 
 class PrometheusCollector:
@@ -67,8 +73,14 @@ class PrometheusCollector:
     async def _fetch_metric(
         self, client: httpx.AsyncClient, query_template: str, label: str
     ) -> EvidenceItem:
-        """Fetch a single metric statistic via PromQL."""
+        """Fetch a single metric statistic via PromQL (Instant Query)."""
+        cache_key = f"{self._prom_instance}:{label}"
+        cached = _cache.get(cache_key)
+        if cached and time.time() - cached[0] < CACHE_TTL:
+            return cached[1]
+
         query = query_template.replace("{instance}", self._prom_instance)
+
         try:
             response = await client.get(
                 f"{self._prom_url}/api/v1/query",
@@ -92,7 +104,7 @@ class PrometheusCollector:
 
             value = float(value_str)
 
-            return EvidenceItem(
+            item = EvidenceItem(
                 source="prometheus",
                 label=label,
                 value=value,
@@ -100,5 +112,7 @@ class PrometheusCollector:
                 status=EvidenceStatus.OK,
                 display_text=f"{label}: {value:.2f}",
             )
+            _cache[cache_key] = (time.time(), item)
+            return item
         except Exception:
             return _unavailable(label)

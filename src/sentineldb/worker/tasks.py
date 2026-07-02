@@ -5,9 +5,11 @@ Celery background tasks for incident analysis.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from typing import Any
 
+import redis.asyncio as redis
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from sentineldb.analysis.renderer import Renderer
@@ -121,6 +123,18 @@ def run_incident_analysis(
         raise self.retry(exc=e, countdown=10)
 
 
+async def _publish_state(incident_id: str, status: str, tenant_id: str | None) -> None:
+    if not tenant_id:
+        return
+    try:
+        r = redis.from_url(settings.REDIS_URL)
+        event = {"incident_id": incident_id, "status": status, "tenant_id": tenant_id}
+        await r.publish(f"incident_updates:{tenant_id}", json.dumps(event))
+        await r.aclose()
+    except Exception as e:
+        logger.warning(f"Failed to publish state {status} to Redis for incident {incident_id}: {e}")
+
+
 async def _analyze(incident_id: str, alert: AlertPayload, tenant_id: str | None) -> IncidentReport:
     """Async core pipeline execution."""
     import uuid
@@ -224,6 +238,7 @@ async def _analyze(incident_id: str, alert: AlertPayload, tenant_id: str | None)
                 )
                 session.add(db_report)
                 await session.commit()
+                await _publish_state(incident_id, "report_ready", tenant_id)
         finally:
             await engine.dispose()
         return report
@@ -260,6 +275,8 @@ async def _mark_failed(incident_id: str, tenant_id: str | None) -> None:
                 if incident:
                     incident.status = "failed"
                     await session.commit()
+                    await _publish_state(incident_id, "failed", tenant_id)
+                await _publish_state(incident_id, "report_ready", tenant_id)
         finally:
             await engine.dispose()
     finally:

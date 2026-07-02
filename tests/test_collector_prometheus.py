@@ -5,7 +5,10 @@ Unit tests mock httpx client.
 
 from __future__ import annotations
 
+
 from unittest.mock import AsyncMock, patch
+import sentineldb.collectors.prometheus as prom
+
 
 import httpx
 import pytest
@@ -25,6 +28,11 @@ _DEMO_INSTANCE = InstanceConfig(
     monitoring="prometheus",
 )
 
+
+
+@pytest.fixture(autouse=True)
+def clear_cache():
+    prom._cache.clear()
 
 @pytest.mark.asyncio
 async def test_prometheus_happy_path() -> None:

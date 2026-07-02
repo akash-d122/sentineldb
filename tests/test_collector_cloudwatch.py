@@ -5,7 +5,10 @@ Unit tests mock boto3 clients.
 
 from __future__ import annotations
 
+
 from unittest.mock import MagicMock, patch
+import sentineldb.collectors.cloudwatch as cw
+
 
 import pytest
 
@@ -24,6 +27,11 @@ _DEMO_INSTANCE = InstanceConfig(
     monitoring="cloudwatch",
 )
 
+
+
+@pytest.fixture(autouse=True)
+def clear_cache():
+    cw._cache.clear()
 
 @pytest.mark.asyncio
 async def test_cloudwatch_happy_path() -> None:
