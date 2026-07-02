@@ -7,17 +7,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from sentineldb.api.dependencies import verify_jwt
 from sentineldb.api.main import app
 from sentineldb.core.enums import IncidentStatus
 from sentineldb.db.models import IncidentORM, IncidentReportORM
 from sentineldb.db.session import get_session
 
-# Override the auth dependency for all API tests
-app.dependency_overrides[verify_jwt] = lambda: {
-    "sub": "test-user-id",
-    "tenant_id": "00000000-0000-0000-0000-000000000000",
-}
 
 client = TestClient(app)
 

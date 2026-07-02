@@ -9,7 +9,6 @@ from pydantic import BaseModel
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from sentineldb.api.dependencies import set_tenant_context, verify_jwt
 from sentineldb.core.enums import AlertType, IncidentStatus, Severity
 from sentineldb.core.models import AlertPayload
 from sentineldb.db.models import IncidentORM, IncidentReportORM
@@ -18,7 +17,6 @@ from sentineldb.db.session import get_session
 router = APIRouter(
     prefix="/api/v1/incidents",
     tags=["incidents"],
-    dependencies=[Depends(verify_jwt), Depends(set_tenant_context)],
 )
 
 
