@@ -8,10 +8,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useRouter } from "next/navigation";
 import { registerDatabase } from "@/app/actions";
 import { toast } from "sonner";
+import { useFeatureFlagEnabled, usePostHog } from 'posthog-js/react';
+import { LockIcon } from "lucide-react";
+
 
 export function RegisterDbForm({ tenantId }: { tenantId: string }) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const posthog = usePostHog();
+  
+  // A/B Test Flag
+  const isSecurityEnhanced = useFeatureFlagEnabled('experiment-db-connection-security');
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -20,7 +27,16 @@ export function RegisterDbForm({ tenantId }: { tenantId: string }) {
     try {
       const formData = new FormData(e.currentTarget);
       await registerDatabase(formData);
+      
+      // Capture success event for A/B testing conversion tracking
+      posthog?.capture('database_connected_success', {
+        tenant_id: tenantId,
+        engine: formData.get("engine"),
+        variant: isSecurityEnhanced ? 'security_enhanced' : 'control'
+      });
+      
       toast.success("Database connected successfully");
+
       router.push(`/t/${tenantId}/incidents`);
     } catch (error: Error | unknown) {
       console.error(error);
@@ -31,12 +47,23 @@ export function RegisterDbForm({ tenantId }: { tenantId: string }) {
 
   return (
     <form onSubmit={handleSubmit}>
+
       <Card>
         <CardHeader>
-          <CardTitle>Connect your Database</CardTitle>
-          <CardDescription>We need read-only access to monitor incidents.</CardDescription>
+          <CardTitle>
+            {isSecurityEnhanced ? "Securely Connect your Database" : "Connect your Database"}
+          </CardTitle>
+          <CardDescription>
+            {isSecurityEnhanced ? (
+              <span className="flex flex-col gap-2 mt-1">
+                <span>SentinelDB uses an encrypted, read-only connection. We never execute DML/DDL or store your raw table data.</span>
+                <a href="#" className="text-sm font-medium text-blue-600 hover:underline">Read our Security Architecture & Guardrails &rarr;</a>
+              </span>
+            ) : "We need read-only access to monitor incidents."}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+
           <div className="space-y-2">
             <Label>Engine</Label>
             <Select required name="engine" defaultValue="postgresql">
@@ -67,9 +94,13 @@ export function RegisterDbForm({ tenantId }: { tenantId: string }) {
             <Label htmlFor="username">Read-only Username</Label>
             <Input id="username" name="username" required placeholder="sentinel_ro" />
           </div>
+
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="flex items-center gap-1.5">
+              Password {isSecurityEnhanced && <LockIcon className="w-3.5 h-3.5 text-emerald-600" />}
+            </Label>
             <Input id="password" name="password" required type="password" />
+
           </div>
         </CardContent>
         <CardFooter>
