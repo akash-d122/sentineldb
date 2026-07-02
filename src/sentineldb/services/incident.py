@@ -31,12 +31,8 @@ async def create_and_analyze_incident(
     incident_id_str = str(incident.incident_id)
     payload_dict = payload.model_dump(mode="json")
 
-    from sentineldb.db.session import tenant_context
 
-    tid = tenant_context.get()
-    tenant_id_str = str(tid) if tid else None
-
-    run_incident_analysis.delay(incident_id_str, payload_dict, tenant_id_str)
+    run_incident_analysis.delay(incident_id_str, payload_dict)
 
     return {
         "status": "accepted",
