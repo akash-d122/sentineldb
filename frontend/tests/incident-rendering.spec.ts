@@ -17,11 +17,12 @@ test.describe('Incident Rendering Pipeline', () => {
 
     // 2. Wait for redirect to dashboard
     await page.waitForURL('**/t/*/incidents');
-    await expect(page.locator('h1')).toContainText('Live Incidents');
+    await expect(page.locator('h1:has-text("Live Incidents")')).toBeVisible();
 
     // 3. Find the first completed report and click it
     // Wait for the table to load
     await page.waitForSelector('table');
+    await page.waitForTimeout(1000);
     
     // Look for a row with 'report ready' or similar status
     const reportLink = page.locator('tr:has-text("report_ready") >> a:has-text("View Report")').first();
@@ -31,7 +32,7 @@ test.describe('Incident Rendering Pipeline', () => {
       await reportLink.click();
       
       // 4. Verify RCA rendering
-      await expect(page.locator('h1')).toContainText('Incident RCA');
+      await expect(page.locator('h1:has-text("Incident RCA")')).toBeVisible();
       
       // Verify strength indicator
       await expect(page.locator('text=RCA Strength')).toBeVisible();

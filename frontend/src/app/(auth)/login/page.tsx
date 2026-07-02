@@ -41,7 +41,10 @@ export default function LoginPage() {
               <Label htmlFor="password">Password</Label>
               <Input id="password" name="password" type="password" required />
             </div>
-            <Button type="submit" className="w-full">Login</Button>
+                        <Button type="submit" className="w-full">Login</Button>
+            <div className="text-center text-sm mt-4">
+              <a href="/signup" className="text-blue-600 hover:underline">Need an account? Sign up here</a>
+            </div>
           </form>
         </CardContent>
       </Card>
