@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { TenantSwitcher } from "./tenant-switcher";
-import { Activity, Settings, LayoutDashboard, History, DatabaseZap } from "lucide-react";
+import { Activity, Settings,  History, DatabaseZap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Sidebar({ tenantId }: { tenantId: string }) {

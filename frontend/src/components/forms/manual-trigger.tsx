@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { triggerManualAnalysis } from "@/app/actions";
 
-export function ManualTriggerForm({ tenantId }: { tenantId: string }) {
+export function ManualTriggerForm({ }: { tenantId: string }) {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -23,9 +23,9 @@ export function ManualTriggerForm({ tenantId }: { tenantId: string }) {
       });
       // Optionally reset form
       e.currentTarget.reset();
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error(error);
-      toast.error(error.message || "Failed to trigger analysis");
+      toast.error((error as Error).message || "Failed to trigger analysis");
     } finally {
       setLoading(false);
     }

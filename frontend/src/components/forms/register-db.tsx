@@ -22,9 +22,9 @@ export function RegisterDbForm({ tenantId }: { tenantId: string }) {
       await registerDatabase(formData);
       toast.success("Database connected successfully");
       router.push(`/t/${tenantId}/incidents`);
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error(error);
-      toast.error(error.message || "Failed to connect database");
+      toast.error((error as Error).message || "Failed to connect database");
       setLoading(false);
     }
   };

@@ -34,9 +34,9 @@ async function getIncidents() {
     }
 
     return { incidents: data, error: null };
-  } catch (error: any) {
+  } catch (error: Error | unknown) {
     console.error("Failed to fetch incidents", error);
-    return { incidents: [], error: error.message || "Failed to fetch incidents" };
+    return { incidents: [], error: (error as Error).message || "Failed to fetch incidents" };
   }
 }
 
@@ -99,7 +99,7 @@ export default async function IncidentsPage({ params }: { params: Promise<{ tena
                   </TableCell>
                 </TableRow>
               ) : (
-                incidents.map((inc: any) => {
+                incidents.map((inc: Record<string, unknown>) => {
                   const isReady = inc.status === 'report_ready';
                   const isFailed = inc.status === 'failed';
                   const statusColor = isReady ? 'bg-emerald-500' : isFailed ? 'bg-red-500' : 'bg-blue-500 animate-pulse';

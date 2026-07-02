@@ -32,9 +32,9 @@ async function getIncidentReport(incidentId: string): Promise<{ report: Incident
 
     const data = await res.json();
     return { report: data, error: null };
-  } catch (error: any) {
+  } catch (error: Error | unknown) {
     console.error(`Failed to fetch report for incident ${incidentId}`, error);
-    return { report: null, error: error.message || "Failed to fetch report" };
+    return { report: null, error: (error as Error).message || "Failed to fetch report" };
   }
 }
 
