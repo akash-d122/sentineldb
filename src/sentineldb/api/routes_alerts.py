@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sentineldb.core.config import settings
 from sentineldb.core.models import AlertPayload
 from sentineldb.db.session import get_session
+from sentineldb.services.incident import create_and_analyze_incident
 
 router = APIRouter(prefix="/api/v1/alerts", tags=["alerts"])
 
@@ -48,9 +49,6 @@ async def verify_webhook_signature(
 
     if not hmac.compare_digest(expected_mac, x_webhook_signature):
         raise HTTPException(status_code=401, detail="Invalid webhook signature")
-
-
-from sentineldb.services.incident import create_and_analyze_incident
 
 
 @router.post(

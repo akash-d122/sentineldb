@@ -70,10 +70,6 @@ async def test_e2e_simulated_pipeline(mock_registry_host) -> None:
     from sqlalchemy.orm import sessionmaker
 
     from sentineldb.db.models import IncidentORM
-    from sentineldb.db.session import tenant_context
-
-    tid = uuid.UUID("00000000-0000-0000-0000-000000000000")
-    token = tenant_context.set(tid)
 
     engine = create_async_engine(settings.DATABASE_URL, echo=False)
     LocalSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore
@@ -94,10 +90,9 @@ async def test_e2e_simulated_pipeline(mock_registry_host) -> None:
             await session.commit()
     finally:
         await engine.dispose()
-        tenant_context.reset(token)
 
     # 2. Run analysis (this calls the asyncpg collector, analyzer, renderer, and persists to DB)
-    report = await _analyze(incident_id, payload, str(tid))
+    report = await _analyze(incident_id, payload)
 
     # 3. Verify report structure
     assert report.incident_id == incident_id
@@ -117,7 +112,6 @@ async def test_e2e_simulated_pipeline(mock_registry_host) -> None:
 
     LocalSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore
 
-    token2 = tenant_context.set(tid)
     try:
         async with LocalSession() as session:
             stmt = select(IncidentReportORM).where(
@@ -130,7 +124,6 @@ async def test_e2e_simulated_pipeline(mock_registry_host) -> None:
             assert db_report.root_cause_summary == report.root_cause_summary
     finally:
         await engine.dispose()
-        tenant_context.reset(token2)
 
 
 @integration
@@ -190,11 +183,6 @@ async def test_e2e_simulated_http() -> None:
     from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy.orm import sessionmaker
 
-    from sentineldb.db.session import tenant_context
-
-    tid = uuid.UUID("00000000-0000-0000-0000-000000000000")
-    token = tenant_context.set(tid)
-
     LocalSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore
 
     try:
@@ -213,4 +201,3 @@ async def test_e2e_simulated_http() -> None:
             assert db_report.rca_strength in ["High", "Medium", "Low"]
     finally:
         await engine.dispose()
-        tenant_context.reset(token)

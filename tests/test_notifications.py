@@ -4,7 +4,7 @@ Tests for notification dispatcher and handlers.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
@@ -66,21 +66,32 @@ def test_jira_handler_sends_notification(sample_report: IncidentReport) -> None:
             assert kwargs["json"]["fields"]["project"]["key"] == "OPS"
 
 
-def test_freshdesk_handler_sends_notification(sample_report: IncidentReport) -> None:
+@pytest.mark.asyncio
+async def test_freshdesk_handler_sends_notification(sample_report: IncidentReport) -> None:
     with patch.dict(
         "os.environ",
         {"FRESHDESK_DOMAIN": "mockdomain", "FRESHDESK_API_KEY": "mockkey"},
     ):
         handler = FreshdeskHandler()
-        with patch("sentineldb.notifications.freshdesk.httpx.post") as mock_post:
-            mock_post.return_value.status_code = 201
-            handler.notify(sample_report)
 
-            mock_post.assert_called_once()
-            args, kwargs = mock_post.call_args
-            assert args[0] == "https://mockdomain.freshdesk.com/api/v2/tickets"
-            assert kwargs["auth"] == ("mockkey", "X")
-            assert kwargs["json"]["priority"] == 2
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=mock_response)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch(
+            "sentineldb.notifications.freshdesk.httpx.AsyncClient", return_value=mock_client
+        ):
+            await handler.notify(sample_report)
+
+        mock_client.post.assert_called_once()
+        args, kwargs = mock_client.post.call_args
+        assert args[0] == "https://mockdomain.freshdesk.com/api/v2/tickets"
+        assert kwargs["auth"] == ("mockkey", "X")
+        assert kwargs["json"]["priority"] == 2
 
 
 def test_dispatcher_calls_all_handlers(sample_report: IncidentReport) -> None:

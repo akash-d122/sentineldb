@@ -20,7 +20,7 @@ class FreshdeskHandler(NotificationHandler):
         self.domain = os.environ.get("FRESHDESK_DOMAIN")
         self.api_key = os.environ.get("FRESHDESK_API_KEY")
 
-    def notify(self, report: IncidentReport) -> None:
+    async def notify(self, report: IncidentReport) -> None:
         """Create a Freshdesk ticket via REST API."""
         if not self.domain or not self.api_key:
             logger.debug(
@@ -39,7 +39,10 @@ class FreshdeskHandler(NotificationHandler):
         }
 
         try:
-            response = httpx.post(url, json=payload, auth=(self.api_key, "X"), timeout=5.0)
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    url, json=payload, auth=(self.api_key, "X"), timeout=5.0
+                )
             response.raise_for_status()
             logger.info("Successfully created Freshdesk ticket for incident %s", report.incident_id)
         except Exception as e:

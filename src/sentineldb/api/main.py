@@ -18,6 +18,8 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# TODO(deploy): Restrict CORS_ORIGINS from ["*"] to actual frontend URL before deployment
+# TODO(deploy): Add rate limiting middleware (e.g., slowapi) before production
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,

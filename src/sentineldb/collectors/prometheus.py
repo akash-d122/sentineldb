@@ -23,16 +23,6 @@ _METRICS = {
 }
 
 
-def _unavailable(label: str) -> EvidenceItem:
-    return EvidenceItem(
-        source="prometheus",
-        label=label,
-        value=None,
-        status=EvidenceStatus.UNAVAILABLE,
-        display_text=f"{label}: UNAVAILABLE",
-    )
-
-
 class PrometheusCollector:
     """Evidence collector for Prometheus metrics (e.g., historical baselines)."""
 
@@ -58,10 +48,10 @@ class PrometheusCollector:
                     if isinstance(result, EvidenceItem):
                         items.append(result)
                     else:
-                        items.append(_unavailable(label))
+                        items.append(EvidenceItem.unavailable("prometheus", label))
                 return EvidenceBundle(instance_id=self._instance.instance_id, items=items)
         except Exception:
-            items = [_unavailable(label) for label in _METRICS]
+            items = [EvidenceItem.unavailable("prometheus", label) for label in _METRICS]
             return EvidenceBundle(instance_id=self._instance.instance_id, items=items)
 
     async def _fetch_metric(
@@ -78,17 +68,17 @@ class PrometheusCollector:
             data = response.json()
 
             if data.get("status") != "success":
-                return _unavailable(label)
+                return EvidenceItem.unavailable("prometheus", label)
 
             results = data.get("data", {}).get("result", [])
             if not results:
-                return _unavailable(label)
+                return EvidenceItem.unavailable("prometheus", label)
 
             # Take the value from the first result vector
             # value is typically [timestamp, "string_value"]
             value_str = results[0].get("value", [None, None])[1]
             if value_str is None:
-                return _unavailable(label)
+                return EvidenceItem.unavailable("prometheus", label)
 
             value = float(value_str)
 
@@ -101,4 +91,4 @@ class PrometheusCollector:
                 display_text=f"{label}: {value:.2f}",
             )
         except Exception:
-            return _unavailable(label)
+            return EvidenceItem.unavailable("prometheus", label)

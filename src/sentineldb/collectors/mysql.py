@@ -88,12 +88,24 @@ class MySQLCollector:
         async with pool.acquire() as conn, conn.cursor() as cur:
             await cur.execute(sql)
             row = await cur.fetchone()
+            description = cur.description
 
         if row is None:
             return _unavailable(label, "mysql")
 
-        # Take the first column value
-        value = row[0]
+        # SHOW SLAVE STATUS returns many columns; extract
+        # Seconds_Behind_Master by name from cursor.description.
+        if label == "replication_lag" and description:
+            col_names = [desc[0] for desc in description]
+            try:
+                idx = col_names.index("Seconds_Behind_Master")
+            except ValueError:
+                return _unavailable(label, "mysql")
+            value = row[idx]
+        else:
+            # Take the first column value
+            value = row[0]
+
         numeric = float(value) if value is not None else None
         status = EvidenceStatus.OK if numeric is not None else EvidenceStatus.UNAVAILABLE
 

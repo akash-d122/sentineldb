@@ -15,7 +15,7 @@ from sentineldb.analysis.rules import Analyzer
 from sentineldb.analysis.runbook_retriever import RunbookRetriever
 from sentineldb.collectors.postgres import PostgresCollector
 from sentineldb.core.config import settings
-from sentineldb.core.models import AlertPayload, IncidentReport
+from sentineldb.core.models import AlertPayload, EvidenceBundle, IncidentReport
 from sentineldb.db.models import IncidentORM, IncidentReportORM
 from sentineldb.llm.summarizer import LLMSummarizer
 from sentineldb.notifications.dispatcher import NotificationDispatcher
@@ -76,7 +76,7 @@ async def _dispatch_notifications_async(incident_id: str) -> None:
     from sentineldb.core.models import IncidentReport
 
     report = IncidentReport.model_validate(db_report, from_attributes=True)
-    _dispatcher.dispatch(report)
+    await _dispatcher.dispatch(report)
 
 
 @celery_app.task(bind=True, max_retries=3)
@@ -134,13 +134,21 @@ async def _analyze(incident_id: str, alert: AlertPayload) -> IncidentReport:
 
         cw_collector = CloudWatchCollector(instance)
         cw_bundle = await cw_collector.collect()
-        bundle.items.extend(cw_bundle.items)
+        bundle = EvidenceBundle(
+            instance_id=bundle.instance_id,
+            collected_at=bundle.collected_at,
+            items=list(bundle.items) + list(cw_bundle.items),
+        )
     elif instance.monitoring == "prometheus":
         from sentineldb.collectors.prometheus import PrometheusCollector
 
         prom_collector = PrometheusCollector(instance)
         prom_bundle = await prom_collector.collect()
-        bundle.items.extend(prom_bundle.items)
+        bundle = EvidenceBundle(
+            instance_id=bundle.instance_id,
+            collected_at=bundle.collected_at,
+            items=list(bundle.items) + list(prom_bundle.items),
+        )
 
     # 3. Analyze
     causes = _analyzer.rank_causes(bundle)

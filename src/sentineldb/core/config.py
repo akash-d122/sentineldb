@@ -32,8 +32,8 @@ class Settings(BaseSettings):
     GOOGLE_API_KEY: str = ""
     LITELLM_MODEL: str = "gemini/gemini-2.5-flash-lite"
 
-    # CORS
-    CORS_ORIGINS: list[str] = ["*"]
+    # CORS – default to local dev servers; restrict to real frontend URL in production
+    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
     # Security
     WEBHOOK_SECRET: str = ""
