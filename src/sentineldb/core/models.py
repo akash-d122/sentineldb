@@ -6,7 +6,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from sentineldb.core.enums import (
     AlertType,
@@ -133,3 +133,8 @@ class IncidentReport(BaseModel):
     missing_evidence: list[str] = Field(default_factory=list)
     llm_used: bool = False
     generated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+    @field_validator("report_id", "incident_id", mode="before")
+    @classmethod
+    def cast_uuid_to_str(cls, v: Any) -> str:
+        return str(v)
