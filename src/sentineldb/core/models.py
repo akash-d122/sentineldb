@@ -119,7 +119,7 @@ class SafeAction(BaseModel):
 class IncidentReport(BaseModel):
     """The final structured RCA report for an incident."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, from_attributes=True)
 
     report_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     incident_id: str

@@ -23,11 +23,11 @@ class NotificationDispatcher:
             FreshdeskHandler(),
         ]
 
-    def dispatch(self, report: IncidentReport) -> None:
+    async def dispatch(self, report: IncidentReport) -> None:
         """Send notifications using all handlers. Catch and log individual failures."""
         logger.info("Dispatching notifications for incident %s", report.incident_id)
         for handler in self.handlers:
             try:
-                handler.notify(report)
+                await handler.notify(report)
             except Exception as e:
                 logger.error("Notification handler %s failed: %s", handler.__class__.__name__, e)

@@ -11,6 +11,6 @@ class NotificationHandler(abc.ABC):
     """Abstract base class for notification handlers."""
 
     @abc.abstractmethod
-    def notify(self, report: IncidentReport) -> None:
+    async def notify(self, report: IncidentReport) -> None:
         """Dispatch a notification for the given incident report."""
         pass

@@ -19,8 +19,8 @@ class SlackHandler(NotificationHandler):
     def __init__(self) -> None:
         self.webhook_url = os.environ.get("SLACK_WEBHOOK_URL")
 
-    def notify(self, report: IncidentReport) -> None:
-        """Send a formatted Slack message synchronously."""
+    async def notify(self, report: IncidentReport) -> None:
+        """Send a formatted Slack message asynchronously."""
         if not self.webhook_url:
             logger.debug("SLACK_WEBHOOK_URL not set; skipping Slack notification.")
             return
@@ -73,11 +73,8 @@ class SlackHandler(NotificationHandler):
         payload = {"blocks": blocks}
 
         try:
-            # Synchronous httpx post since we are in a Celery task that is already running
-            # inside an async loop wrapper if invoked from `run_incident_analysis`,
-            # or in a normal sync thread if run from a dedicated notification task.
-            # Actually, `httpx.post` is sync.
-            response = httpx.post(self.webhook_url, json=payload, timeout=5.0)
+            async with httpx.AsyncClient() as client:
+                response = await client.post(self.webhook_url, json=payload, timeout=5.0)
             response.raise_for_status()
             logger.info("Successfully sent Slack notification for incident %s", report.incident_id)
         except Exception as e:
