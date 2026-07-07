@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../auth/AuthProvider'; // dummy import for auth
-import { useAuth } from '../auth/AuthProvider';
 
 interface Threshold {
   id: string;
@@ -13,7 +11,6 @@ interface Threshold {
 export default function ConfigPage() {
   const [thresholds, setThresholds] = useState<Threshold[]>([]);
   const [loading, setLoading] = useState(true);
-  const { session } = useAuth();
 
   // Dummy form state
   const [instanceId, setInstanceId] = useState('');
@@ -23,11 +20,7 @@ export default function ConfigPage() {
 
   const fetchThresholds = async () => {
     try {
-      // Send a dummy dev-token to bypass auth locally
-      const token = session?.access_token || 'dev-token';
-      const res = await fetch('http://localhost:8000/api/v1/config/thresholds', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetch('http://localhost:8000/api/v1/config/thresholds');
       if (res.ok) {
         setThresholds(await res.json());
       }
@@ -40,16 +33,14 @@ export default function ConfigPage() {
 
   useEffect(() => {
     fetchThresholds();
-  }, [session]);
+  }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const token = session?.access_token || 'dev-token';
       const res = await fetch('http://localhost:8000/api/v1/config/thresholds', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -69,10 +60,8 @@ export default function ConfigPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const token = session?.access_token || 'dev-token';
       const res = await fetch(`http://localhost:8000/api/v1/config/thresholds/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        method: 'DELETE'
       });
       if (res.ok) {
         fetchThresholds();

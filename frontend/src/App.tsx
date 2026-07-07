@@ -1,16 +1,9 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import IncidentFeedPage from "./pages/IncidentFeedPage";
-import IncidentDetailPage from "./pages/IncidentDetailPage";
-
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import IncidentFeedPage from "./pages/IncidentFeedPage";
 import IncidentDetailPage from "./pages/IncidentDetailPage";
 import ConfigPage from "./pages/ConfigPage";
-import { AuthProvider, useAuth } from "./auth/AuthProvider";
 
 function AppContent() {
-  const { signOut } = useAuth();
-
   return (
     <div className="min-h-screen bg-gray-100">
       <nav className="bg-white shadow-sm mb-4">
@@ -22,12 +15,6 @@ function AppContent() {
             </div>
             <div className="flex items-center gap-4">
               <div className="text-gray-500 text-sm">V2 Internal Dashboard</div>
-              <button
-                onClick={signOut}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                Sign Out
-              </button>
             </div>
           </div>
         </div>
@@ -43,11 +30,9 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
-    </AuthProvider>
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
   );
 }
 
