@@ -30,6 +30,7 @@ export default function IncidentDetailPage() {
           setStatusMsg("Failed to fetch report or report not found.");
         }
       } catch (e) {
+        console.error("Error fetching details:", e);
         setStatusMsg("Error fetching details.");
       } finally {
         setLoading(false);
@@ -62,12 +63,12 @@ export default function IncidentDetailPage() {
       </div>
 
       {!report ? (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+        <div className="bg-yellow-50 border border-yellow-200 rounded p-4 mb-6">
           <p className="text-yellow-700">{statusMsg || "Report is not ready yet."}</p>
         </div>
       ) : (
         <div className="space-y-6">
-          <section className="bg-white p-6 shadow rounded-lg border-t-4 border-blue-600">
+          <section className="bg-white p-6 shadow-sm border border-gray-200 rounded-lg">
             <h2 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
               ROOT CAUSE
               <span className={`px-2 py-1 text-xs rounded-full text-white ${
