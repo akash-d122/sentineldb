@@ -129,7 +129,7 @@ async def _analyze(incident_id: str, alert: AlertPayload) -> IncidentReport:
     bundle = await collector.collect()
 
     # 2b. Collect external monitoring evidence if configured
-    if instance.monitoring == "cloudwatch":
+    if instance.monitoring and instance.monitoring.provider == "cloudwatch":
         from sentineldb.collectors.cloudwatch import CloudWatchCollector
 
         cw_collector = CloudWatchCollector(instance)
@@ -139,7 +139,7 @@ async def _analyze(incident_id: str, alert: AlertPayload) -> IncidentReport:
             collected_at=bundle.collected_at,
             items=list(bundle.items) + list(cw_bundle.items),
         )
-    elif instance.monitoring == "prometheus":
+    elif instance.monitoring and instance.monitoring.provider == "prometheus":
         from sentineldb.collectors.prometheus import PrometheusCollector
 
         prom_collector = PrometheusCollector(instance)

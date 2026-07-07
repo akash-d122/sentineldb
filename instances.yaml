@@ -6,4 +6,6 @@ db-demo-01:
   username: sentinel_ro
   credential_ref: POSTGRES_RO_PASSWORD
   cloud: null
-  monitoring: null
+  monitoring:
+    provider: prometheus
+    job_name: postgres_exporter

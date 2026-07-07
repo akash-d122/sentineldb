@@ -22,7 +22,7 @@ _DEMO_INSTANCE = InstanceConfig(
     database="sentineldb",
     username="sentinel_ro",
     credential_ref="pg_demo_ro",
-    monitoring="prometheus",
+    monitoring={"provider": "prometheus", "job_name": "postgres_exporter"},
 )
 
 
@@ -47,7 +47,7 @@ async def test_prometheus_happy_path() -> None:
         bundle = await collector.collect()
 
     assert bundle.instance_id == "db-demo-01"
-    assert len(bundle.items) == 3
+    assert len(bundle.items) == 9
     for item in bundle.items:
         assert item.status == EvidenceStatus.OK
         assert item.value == 45.5
@@ -71,7 +71,7 @@ async def test_prometheus_missing_results_returns_unavailable() -> None:
         collector = PrometheusCollector(_DEMO_INSTANCE)
         bundle = await collector.collect()
 
-    assert len(bundle.items) == 3
+    assert len(bundle.items) == 9
     assert all(item.status == EvidenceStatus.UNAVAILABLE for item in bundle.items)
 
 
@@ -85,5 +85,5 @@ async def test_prometheus_api_error_returns_unavailable() -> None:
         collector = PrometheusCollector(_DEMO_INSTANCE)
         bundle = await collector.collect()
 
-    assert len(bundle.items) == 3
+    assert len(bundle.items) == 9
     assert all(item.status == EvidenceStatus.UNAVAILABLE for item in bundle.items)

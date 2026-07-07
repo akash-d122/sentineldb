@@ -21,7 +21,7 @@ _DEMO_INSTANCE = InstanceConfig(
     database="sentineldb",
     username="sentinel_ro",
     credential_ref="pg_demo_ro",
-    monitoring="cloudwatch",
+    monitoring={"provider": "cloudwatch"},
 )
 
 
